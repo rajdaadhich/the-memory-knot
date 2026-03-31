@@ -63,8 +63,25 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
   res.status(500).json({ error: "Internal Server Error", message: err.message });
 });
 
+import prisma from "./lib/prisma";
+
 const PORT = process.env.PORT || 5000;
-app.listen(parseInt(PORT as string), "0.0.0.0", () => {
-  console.log(`🚀 Server running on http://0.0.0.0:${PORT}`);
-});
+
+async function startServer() {
+  try {
+    console.log("⏳ Connecting to database...");
+    await prisma.$connect();
+    console.log("✅ Database Connected Successfully");
+
+    app.listen(parseInt(PORT as string), "0.0.0.0", () => {
+      console.log(`🚀 Server running on http://0.0.0.0:${PORT}`);
+    });
+  } catch (error) {
+    console.error("❌ Database Connection Failed:", error);
+    process.exit(1);
+  }
+}
+
+startServer();
+
 
