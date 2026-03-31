@@ -1,9 +1,11 @@
 import { MessageCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { SITE_CONFIG } from '@/config';
 
 const WhatsAppButton = () => {
-  const message = encodeURIComponent('Hi! I\'m interested in ordering a personalized gift from The Memory Knot 🎁');
-  const whatsappUrl = `https://wa.me/919876543210?text=${message}`;
+  const message = encodeURIComponent(`Hi! I'm interested in ordering a personalized gift from ${SITE_CONFIG.name} 🎁`);
+  const whatsappUrl = `https://wa.me/${SITE_CONFIG.whatsappNumber}?text=${message}`;
+
 
   return (
     <motion.a

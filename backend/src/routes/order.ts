@@ -7,22 +7,29 @@ const router = express.Router();
 router.post("/", async (req, res) => {
   try {
     const { 
-      name, customerName, 
-      email, customerEmail, 
-      phone, customerPhone, 
-      address, totalAmount, items 
+      customerName, 
+      customerEmail, 
+      customerPhone, 
+      address, 
+      totalAmount, 
+      items 
     } = req.body;
+
+    // Basic validation
+    if (!customerName || !customerPhone || !address || !items || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ error: "Missing or invalid required fields" });
+    }
 
     const order = await prisma.order.create({
       data: {
-        customerName: customerName || name,
-        customerEmail: customerEmail || email,
-        customerPhone: customerPhone || phone,
+        customerName,
+        customerEmail,
+        customerPhone,
         address,
         totalAmount,
         items: {
           create: items.map((item: any) => ({
-            productId: item.id,
+            productId: item.productId || item.id,
             quantity: item.quantity || 1,
             price: item.price,
           })),
@@ -31,11 +38,10 @@ router.post("/", async (req, res) => {
       include: { items: true },
     });
 
-    // Return in format expected by frontend
-    res.json({ order });
-  } catch (error) {
+    res.status(201).json({ order });
+  } catch (error: any) {
     console.error("Order Error:", error);
-    res.status(500).json({ error: "Failed to create order" });
+    res.status(500).json({ error: "Failed to create order", details: error.message });
   }
 });
 

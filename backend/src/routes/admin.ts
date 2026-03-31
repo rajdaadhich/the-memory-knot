@@ -4,7 +4,11 @@ import nodemailer from "nodemailer";
 import prisma from "../lib/prisma";
 
 const router = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET || "the_memory_knot_super_secret";
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error("JWT_SECRET is missing from environment variables");
+}
+
 
 // Email Setup
 const transporter = nodemailer.createTransport({
@@ -18,9 +22,15 @@ const transporter = nodemailer.createTransport({
 // Admin Login
 router.post("/login", (req, res) => {
   const { password } = req.body;
-  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "password";
+  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+
+  if (!ADMIN_PASSWORD) {
+    console.error("ADMIN_PASSWORD is missing from .env");
+    return res.status(500).json({ error: "Server configuration error" });
+  }
 
   if (password === ADMIN_PASSWORD) {
+
     const token = jwt.sign({ role: "admin" }, JWT_SECRET, { expiresIn: "1d" });
     return res.json({ token });
   }
@@ -114,33 +124,65 @@ router.patch("/orders/:id", verifyToken, async (req: any, res: any) => {
 });
 
 // Product Management
-router.post("/products", verifyToken, async (req, res) => {
+router.post("/products", verifyToken, async (req: any, res: any) => {
   try {
-    const data = { ...req.body };
-    if (data.price) data.price = parseFloat(data.price);
-    const product = await prisma.product.create({ data });
-    res.json(product);
-  } catch (error) {
+    const { name, price, description, image, category, featured } = req.body;
+    
+    if (!name || isNaN(parseFloat(price))) {
+      return res.status(400).json({ error: "Product name and valid price are required" });
+    }
+
+    const product = await prisma.product.create({ 
+      data: { 
+        name, 
+        price: parseFloat(price), 
+        description, 
+        image, 
+        category, 
+        featured: Boolean(featured)
+      } 
+    });
+    res.status(201).json(product);
+  } catch (error: any) {
     console.error("Create Product Error:", error);
-    res.status(500).json({ error: "Failed to create product" });
+    res.status(500).json({ error: "Failed to create product", details: error.message });
   }
 });
 
-router.put("/products/:id", verifyToken, async (req, res) => {
+router.put("/products/:id", verifyToken, async (req: any, res: any) => {
   try {
+    const { id } = req.params;
     const data = { ...req.body };
+    
     if (data.price) data.price = parseFloat(data.price);
-    const product = await prisma.product.update({ where: { id: req.params.id }, data });
+    if (data.featured !== undefined) data.featured = Boolean(data.featured);
+
+    const product = await prisma.product.update({ 
+      where: { id }, 
+      data 
+    });
     res.json(product);
-  } catch (error) {
+  } catch (error: any) {
     console.error("Update Product Error:", error);
-    res.status(500).json({ error: "Failed to update product" });
+    if (error.code === 'P2025') {
+      return res.status(404).json({ error: "Product not found" });
+    }
+    res.status(500).json({ error: "Failed to update product", details: error.message });
   }
 });
 
-router.delete("/products/:id", verifyToken, async (req, res) => {
-  await prisma.product.delete({ where: { id: req.params.id } });
-  res.json({ success: true });
+router.delete("/products/:id", verifyToken, async (req: any, res: any) => {
+  try {
+    const { id } = req.params;
+    await prisma.product.delete({ where: { id } });
+    res.json({ success: true, message: "Product deleted successfully" });
+  } catch (error: any) {
+    console.error("Delete Product Error:", error);
+    if (error.code === 'P2025') {
+      return res.status(404).json({ error: "Product not found" });
+    }
+    res.status(500).json({ error: "Failed to delete product", details: error.message });
+  }
 });
 
 export default router;

@@ -1,4 +1,6 @@
 import { Heart, Instagram, Facebook, Twitter } from 'lucide-react';
+import { SITE_CONFIG } from '@/config';
+
 
 const Footer = () => {
   return (
@@ -12,6 +14,7 @@ const Footer = () => {
               <span className="font-heading text-xl font-semibold text-primary-foreground">
                 Memory <span className="text-primary italic">Knot</span>
               </span>
+
             </div>
             <p className="text-sm leading-relaxed text-primary-foreground/60">
               Turning your most cherished memories into beautiful, handcrafted gifts that last forever.
@@ -45,26 +48,33 @@ const Footer = () => {
           {/* Contact */}
           <div>
             <h4 className="font-heading font-semibold text-primary-foreground mb-4">Connect</h4>
-            <p className="text-sm text-primary-foreground/60 mb-2">hello@memoryknot.com</p>
-            <p className="text-sm text-primary-foreground/60 mb-4">+91 98765 43210</p>
+            <p className="text-sm text-primary-foreground/60 mb-2">{SITE_CONFIG.email}</p>
+            <p className="text-sm text-primary-foreground/60 mb-4">{SITE_CONFIG.phone}</p>
+
             <div className="flex gap-3">
-              {[Instagram, Facebook, Twitter].map((Icon, i) => (
+              {[
+                { Icon: Instagram, href: SITE_CONFIG.instagram },
+                { Icon: Facebook, href: SITE_CONFIG.facebook },
+                { Icon: Twitter, href: "#" }
+              ].map((item, i) => (
                 <a
                   key={i}
-                  href="#"
+                  href={item.href}
                   className="w-9 h-9 rounded-full bg-primary-foreground/10 flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-all"
                 >
-                  <Icon size={16} />
+                  <item.Icon size={16} />
                 </a>
               ))}
+
             </div>
           </div>
         </div>
 
         <div className="mt-12 pt-8 border-t border-primary-foreground/10 text-center">
           <p className="text-sm text-primary-foreground/40">
-            © 2026 The Memory Knot. Made with <Heart size={12} className="inline text-primary" fill="currentColor" /> in India
+            © 2026 {SITE_CONFIG.name}. Made with <Heart size={12} className="inline text-primary" fill="currentColor" /> in India
           </p>
+
         </div>
       </div>
     </footer>

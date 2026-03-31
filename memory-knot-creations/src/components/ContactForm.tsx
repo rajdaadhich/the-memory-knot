@@ -3,6 +3,8 @@ import { motion } from 'framer-motion';
 import { Send, Phone, Mail, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
+import { SITE_CONFIG } from '@/config';
+
 
 const ContactForm = () => {
   const [form, setForm] = useState({ name: '', email: '', phone: '', message: '', customization: '' });
@@ -14,6 +16,12 @@ const ContactForm = () => {
       toast.error('Please fill in your name, email and phone number');
       return;
     }
+
+    if (!/^\+?[\d\s-]{10,}$/.test(form.phone)) {
+      toast.error('Please enter a valid phone number');
+      return;
+    }
+
     
     setIsSubmitting(true);
     try {
@@ -54,21 +62,24 @@ const ContactForm = () => {
                   <Phone size={18} />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-foreground">+91 98765 43210</p>
+                  <p className="text-sm font-medium text-foreground">{SITE_CONFIG.phone}</p>
                   <p className="text-xs text-muted-foreground">Mon-Sat, 10am-7pm</p>
                 </div>
+
               </div>
               <div className="flex items-center gap-4">
                 <div className="w-11 h-11 rounded-xl bg-rose-light/50 flex items-center justify-center text-primary">
                   <Mail size={18} />
                 </div>
-                <p className="text-sm font-medium text-foreground">hello@memoryknot.com</p>
+                <p className="text-sm font-medium text-foreground">{SITE_CONFIG.email}</p>
+
               </div>
               <div className="flex items-center gap-4">
                 <div className="w-11 h-11 rounded-xl bg-rose-light/50 flex items-center justify-center text-primary">
                   <MapPin size={18} />
                 </div>
-                <p className="text-sm font-medium text-foreground">Mumbai, India</p>
+                <p className="text-sm font-medium text-foreground">{SITE_CONFIG.address}</p>
+
               </div>
             </div>
           </motion.div>

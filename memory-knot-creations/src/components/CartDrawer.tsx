@@ -4,6 +4,8 @@ import { useCart } from '@/contexts/CartContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
+import { SITE_CONFIG } from '@/config';
+
 
 const CartDrawer = () => {
   const { items, isCartOpen, setIsCartOpen, removeItem, updateQuantity, totalPrice, totalItems, clearCart } = useCart();
@@ -26,19 +28,21 @@ const CartDrawer = () => {
     setIsSubmitting(true);
     try {
       const orderData = {
-        name: formData.name,
-        email: formData.email,
-        phone: formData.phone,
+        customerName: formData.name,
+        customerEmail: formData.email,
+        customerPhone: formData.phone,
         address: formData.address,
         totalAmount: totalPrice,
         items: items.map(item => ({ id: item.id, quantity: item.quantity, price: item.price }))
       };
 
+
       const res = await api.createOrder(orderData);
 
       // WhatsApp Formatting
       const message = `Hello, I would like to place an order!\n\n*Order ID:* ${res.order.id}\n*Name:* ${formData.name}\n*Total:* ₹${totalPrice}\n\n*Items:*\n${items.map(i => `- ${i.name} (x${i.quantity})`).join('\n')}\n\nPlease let me know how I can make the payment.`;
-      const whatsappUrl = `https://wa.me/917073691168?text=${encodeURIComponent(message)}`;
+      const whatsappUrl = `https://wa.me/${SITE_CONFIG.whatsappNumber}?text=${encodeURIComponent(message)}`;
+
       
       clearCart();
       setIsCartOpen(false);

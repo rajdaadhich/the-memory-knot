@@ -29,13 +29,13 @@ const Navbar = () => {
             {isMobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
 
-          {/* Logo */}
           <a href="#home" className="flex items-center gap-2">
             <Heart className="text-primary" size={24} fill="currentColor" />
             <span className="font-heading text-xl lg:text-2xl font-semibold text-foreground">
               Memory <span className="text-primary italic">Knot</span>
             </span>
           </a>
+
 
           {/* Desktop Nav */}
           <div className="hidden lg:flex items-center gap-8">

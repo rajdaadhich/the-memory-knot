@@ -11,6 +11,7 @@ import productKeepsake from '@/assets/product-keepsake.jpg';
 import productScrapbook from '@/assets/product-scrapbook.jpg';
 import productStarmap from '@/assets/product-starmap.jpg';
 import gallery2 from '@/assets/gallery-2.jpg';
+import { Skeleton } from '@/components/ui/skeleton';
 import QuickViewModal from './QuickViewModal';
 
 const FeaturedProducts = () => {
@@ -29,10 +30,6 @@ const FeaturedProducts = () => {
       setLoading(false);
     });
   }, []);
-
-  if (loading) {
-    return <div className="py-20 text-center text-muted-foreground">Loading featured gifts...</div>;
-  }
 
   return (
     <section id="products" className="py-20 lg:py-28 gradient-romantic">
@@ -53,7 +50,19 @@ const FeaturedProducts = () => {
         </motion.div>
 
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 lg:gap-6">
-          {products.map((product, i) => (
+          {loading ? (
+            Array(8).fill(0).map((_, i) => (
+              <div key={i} className="space-y-4">
+                <Skeleton className="aspect-square w-full rounded-2xl" />
+                <div className="space-y-2 p-4">
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-4 w-1/4" />
+                </div>
+              </div>
+            ))
+          ) : (
+            products.map((product, i) => (
+
             <motion.div
               key={product.id}
               initial={{ opacity: 0, y: 20 }}
@@ -106,8 +115,10 @@ const FeaturedProducts = () => {
                 </div>
               </div>
             </motion.div>
-          ))}
-        </div>
+          ))
+        )}
+      </div>
+
       </div>
 
       <QuickViewModal 

@@ -10,8 +10,9 @@ router.get("/", async (req, res) => {
       orderBy: { createdAt: "desc" },
     });
     res.json(products);
-  } catch (error) {
-    res.status(500).json({ error: "Failed to fetch products" });
+  } catch (error: any) {
+    console.error("Fetch Products Error:", error);
+    res.status(500).json({ error: "Failed to fetch products", details: error.message });
   }
 });
 
@@ -22,8 +23,9 @@ router.get("/featured", async (req, res) => {
       where: { featured: true },
     });
     res.json(products);
-  } catch (error) {
-    res.status(500).json({ error: "Failed to fetch featured products" });
+  } catch (error: any) {
+    console.error("Fetch Featured Products Error:", error);
+    res.status(500).json({ error: "Failed to fetch featured products", details: error.message });
   }
 });
 
