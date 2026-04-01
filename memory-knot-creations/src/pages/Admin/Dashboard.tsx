@@ -212,9 +212,10 @@ const AdminDashboard = () => {
                 </button>
               </div>
 
-              <div className="bg-card rounded-2xl border border-border overflow-hidden">
-                <table className="w-full text-left border-collapse">
+              <div className="bg-card rounded-2xl border border-border overflow-x-auto">
+                <table className="w-full text-left border-collapse min-w-[700px]">
                   <thead className="bg-secondary/50 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+
                     <tr>
                       <th className="px-6 py-4">Image</th>
                       <th className="px-6 py-4">Name</th>
