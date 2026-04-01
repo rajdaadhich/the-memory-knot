@@ -15,8 +15,11 @@ import {
   User,
   Phone,
   MapPin,
-  CheckCircle2
+  CheckCircle2,
+  Menu,
+  X
 } from 'lucide-react';
+
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState<'products' | 'orders' | 'contacts'>('products');
@@ -36,6 +39,8 @@ const AdminDashboard = () => {
     category: '',
     featured: false
   });
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
 
   const navigate = useNavigate();
   const token = localStorage.getItem('admin_token');
@@ -119,48 +124,70 @@ const AdminDashboard = () => {
   return (
     <div className="min-h-screen bg-secondary/20 flex flex-col">
       {/* Header */}
-      <header className="bg-card border-b border-border px-6 py-4 flex items-center justify-between sticky top-0 z-30">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-primary-foreground">
-            <Package size={18} />
+      <header className="bg-card border-b border-border px-4 md:px-6 py-4 flex items-center justify-between sticky top-0 z-30">
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={() => setIsMobileMenuOpen(true)}
+            className="lg:hidden p-2 hover:bg-secondary rounded-lg transition-colors"
+          >
+            <Menu size={20} />
+          </button>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-primary-foreground">
+              <Package size={18} />
+            </div>
+            <h1 className="font-heading font-bold text-lg md:text-xl">MK Admin</h1>
           </div>
-          <h1 className="font-heading font-bold text-xl">MK Admin</h1>
         </div>
         
         <button 
           onClick={handleLogout}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-secondary transition-colors text-sm font-medium"
+          className="flex items-center gap-2 px-3 md:px-4 py-2 rounded-lg hover:bg-secondary transition-colors text-xs md:text-sm font-medium"
         >
           <LogOut size={16} />
-          Logout
+          <span className="hidden sm:inline">Logout</span>
         </button>
       </header>
 
+      {/* Mobile Drawer Overlay */}
+      {isMobileMenuOpen && (
+        <div 
+          className="fixed inset-0 z-50 lg:hidden"
+          onClick={() => setIsMobileMenuOpen(false)}
+        >
+          <div className="absolute inset-0 bg-foreground/20 backdrop-blur-sm" />
+          <aside 
+            className="absolute left-0 top-0 bottom-0 w-72 bg-card border-r border-border p-4 shadow-elevated flex flex-col gap-2 animate-in slide-in-from-left duration-300"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-6 px-2">
+              <span className="font-heading font-bold text-lg">Menu</span>
+              <button 
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="p-2 hover:bg-secondary rounded-lg transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <NavItems 
+              activeTab={activeTab} 
+              setActiveTab={(tab) => {
+                setActiveTab(tab);
+                setIsMobileMenuOpen(false);
+              }} 
+            />
+          </aside>
+        </div>
+      )}
+
+
       <div className="flex flex-1">
-        {/* Sidebar */}
+        {/* Sidebar (Desktop) */}
         <aside className="w-64 bg-card border-r border-border p-4 hidden lg:flex flex-col gap-2">
-          <button 
-            onClick={() => setActiveTab('products')}
-            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'products' ? 'bg-primary text-primary-foreground shadow-soft' : 'hover:bg-secondary'}`}
-          >
-            <Package size={20} />
-            <span className="font-medium">Products</span>
-          </button>
-          <button 
-            onClick={() => setActiveTab('orders')}
-            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'orders' ? 'bg-primary text-primary-foreground shadow-soft' : 'hover:bg-secondary'}`}
-          >
-            <ShoppingBag size={20} />
-            <span className="font-medium">Orders</span>
-          </button>
-          <button 
-            onClick={() => setActiveTab('contacts')}
-            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'contacts' ? 'bg-primary text-primary-foreground shadow-soft' : 'hover:bg-secondary'}`}
-          >
-            <MessageSquare size={20} />
-            <span className="font-medium">Messages</span>
-          </button>
+          <NavItems activeTab={activeTab} setActiveTab={setActiveTab} />
         </aside>
+
 
         {/* Content Area */}
         <main className="flex-1 p-6 lg:p-10 max-w-7xl mx-auto w-full">
@@ -494,4 +521,31 @@ const AdminDashboard = () => {
   );
 };
 
+const NavItems = ({ activeTab, setActiveTab }: { activeTab: string, setActiveTab: (tab: any) => void }) => (
+  <>
+    <button 
+      onClick={() => setActiveTab('products')}
+      className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'products' ? 'bg-primary text-primary-foreground shadow-soft' : 'hover:bg-secondary'}`}
+    >
+      <Package size={20} />
+      <span className="font-medium">Products</span>
+    </button>
+    <button 
+      onClick={() => setActiveTab('orders')}
+      className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'orders' ? 'bg-primary text-primary-foreground shadow-soft' : 'hover:bg-secondary'}`}
+    >
+      <ShoppingBag size={20} />
+      <span className="font-medium">Orders</span>
+    </button>
+    <button 
+      onClick={() => setActiveTab('contacts')}
+      className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'contacts' ? 'bg-primary text-primary-foreground shadow-soft' : 'hover:bg-secondary'}`}
+    >
+      <MessageSquare size={20} />
+      <span className="font-medium">Messages</span>
+    </button>
+  </>
+);
+
 export default AdminDashboard;
+
