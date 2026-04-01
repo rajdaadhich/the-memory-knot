@@ -12,10 +12,12 @@ app.set("etag", false);
 // Middleware
 const allowedOrigins = [
   process.env.FRONTEND_URL,
+  "https://the-memory-knot.vercel.app",
   "http://localhost:8080",
   "http://localhost:8081",
   "http://localhost:5173"
 ].filter(Boolean) as string[];
+
 
 app.use(cors({ 
   origin: (origin, callback) => {
