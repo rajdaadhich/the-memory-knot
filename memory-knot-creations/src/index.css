@@ -6,54 +6,54 @@
 
 @layer base {
   :root {
-    --background: 30 33% 98%;
-    --foreground: 20 20% 18%;
+    /* New cream/maroon palette matching screenshot */
+    --background: 34 40% 96%;
+    --foreground: 0 25% 15%;
 
-    --card: 30 30% 97%;
-    --card-foreground: 20 20% 18%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 25% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 20 20% 18%;
+    --popover-foreground: 0 25% 15%;
 
-    --primary: 350 60% 72%;
+    /* Deep maroon primary */
+    --primary: 347 52% 35%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 30 40% 92%;
-    --secondary-foreground: 20 20% 25%;
+    --secondary: 34 30% 90%;
+    --secondary-foreground: 0 20% 20%;
 
-    --muted: 30 25% 94%;
-    --muted-foreground: 20 10% 50%;
+    --muted: 34 25% 92%;
+    --muted-foreground: 0 10% 45%;
 
-    --accent: 20 70% 82%;
-    --accent-foreground: 20 30% 20%;
+    --accent: 38 60% 50%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 30 25% 90%;
-    --input: 30 25% 88%;
-    --ring: 350 60% 72%;
+    --border: 34 20% 88%;
+    --input: 34 20% 88%;
+    --ring: 347 52% 35%;
 
-    --radius: 1rem;
+    --radius: 0.75rem;
 
-    --rose: 350 60% 72%;
-    --rose-light: 350 70% 92%;
-    --peach: 20 70% 82%;
-    --peach-light: 20 80% 94%;
-    --beige: 30 40% 92%;
-    --beige-dark: 30 30% 82%;
-    --cream: 35 40% 96%;
-    --gold: 38 70% 55%;
+    /* Extended palette */
+    --maroon: 347 52% 35%;
+    --maroon-light: 347 52% 92%;
+    --cream: 34 40% 96%;
+    --cream-dark: 34 30% 90%;
+    --gold: 38 60% 50%;
+    --gold-light: 38 60% 90%;
 
     --font-heading: 'Playfair Display', serif;
     --font-body: 'DM Sans', sans-serif;
 
-    --gradient-romantic: linear-gradient(135deg, hsl(350 70% 92%) 0%, hsl(20 80% 94%) 50%, hsl(35 40% 96%) 100%);
-    --gradient-hero: linear-gradient(135deg, hsl(350 60% 72% / 0.15) 0%, hsl(20 70% 82% / 0.1) 100%);
-    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%) 0%, hsl(30 30% 97%) 100%);
-    --shadow-soft: 0 4px 24px -4px hsl(350 60% 72% / 0.12);
-    --shadow-card: 0 8px 32px -8px hsl(20 20% 18% / 0.08);
-    --shadow-elevated: 0 16px 48px -12px hsl(20 20% 18% / 0.12);
+    --gradient-hero: linear-gradient(135deg, hsl(34, 40%, 96%) 0%, hsl(34, 35%, 93%) 100%);
+    --gradient-card: linear-gradient(145deg, hsl(0, 0%, 100%) 0%, hsl(34, 30%, 98%) 100%);
+    --shadow-soft: 0 4px 20px -4px hsl(347, 52%, 35%, 0.12);
+    --shadow-card: 0 6px 28px -6px hsl(0, 25%, 15%, 0.08);
+    --shadow-elevated: 0 12px 40px -8px hsl(0, 25%, 15%, 0.14);
   }
 
   * {
@@ -81,11 +81,23 @@
   .font-body {
     font-family: var(--font-body);
   }
-  .gradient-romantic {
-    background: var(--gradient-romantic);
+  .bg-cream {
+    background-color: hsl(var(--cream));
   }
-  .gradient-hero {
-    background: var(--gradient-hero);
+  .bg-cream-dark {
+    background-color: hsl(var(--cream-dark));
+  }
+  .text-maroon {
+    color: hsl(var(--maroon));
+  }
+  .bg-maroon {
+    background-color: hsl(var(--maroon));
+  }
+  .text-gold {
+    color: hsl(var(--gold));
+  }
+  .fill-gold {
+    fill: hsl(var(--gold));
   }
   .shadow-soft {
     box-shadow: var(--shadow-soft);
@@ -96,4 +108,80 @@
   .shadow-elevated {
     box-shadow: var(--shadow-elevated);
   }
+  .divider-ornament::before,
+  .divider-ornament::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(to right, transparent, hsl(var(--gold)));
+  }
+  .divider-ornament::after {
+    background: linear-gradient(to left, transparent, hsl(var(--gold)));
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-primary text-primary-foreground px-6 py-3 rounded-lg font-medium font-body hover:opacity-90 transition-all duration-200 shadow-soft;
+  }
+  .btn-outline {
+    @apply border border-primary text-primary px-6 py-3 rounded-lg font-medium font-body hover:bg-primary hover:text-primary-foreground transition-all duration-200;
+  }
+  .section-title {
+    @apply font-heading text-3xl lg:text-4xl font-bold text-foreground;
+  }
+  .section-subtitle {
+    @apply text-muted-foreground font-body mt-2;
+  }
+  .product-card {
+    @apply bg-card rounded-xl overflow-hidden shadow-card hover:shadow-elevated transition-all duration-300 border border-border/60;
+  }
+  .nav-link {
+    @apply text-sm font-medium text-foreground/70 hover:text-primary transition-colors duration-200 relative;
+  }
+  .nav-link.active {
+    @apply text-primary;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: hsl(var(--cream-dark));
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--maroon) / 0.4);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--maroon) / 0.7);
+}
+
+/* Floating animation */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Fade in up */
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in-up {
+  animation: fade-in-up 0.6s ease-out forwards;
+}
+
+/* Watercolor blob decorations */
+.blob-decoration {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(40px);
+  opacity: 0.15;
+  pointer-events: none;
 }

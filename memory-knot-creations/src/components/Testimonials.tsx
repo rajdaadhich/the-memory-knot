@@ -1,50 +1,43 @@
 import { motion } from 'framer-motion';
-import { Star, Quote } from 'lucide-react';
 
 const testimonials = [
   {
-    name: 'Priya Sharma',
-    text: 'The memory box I ordered for our anniversary was absolutely stunning! My husband was in tears.The Memory Knot truly understands emotions.',
-    rating: 5,
-    occasion: 'Anniversary Gift',
+    name: 'Shweta & Rohan',
+    text: '"Beautiful gift! Made our anniversary so special. Highly recommend"',
+    initials: 'SR',
+    color: 'bg-pink-100 text-pink-600',
   },
   {
-    name: 'Rahul Mehta',
-    text: 'Ordered a surprise hamper for my best friend\'s birthday. The attention to detail and personalization was beyond amazing!',
-    rating: 5,
-    occasion: 'Birthday Gift',
+    name: 'Aarav S.',
+    text: '"Amazing quality and fast delivery. My wife loved it"',
+    initials: 'AS',
+    color: 'bg-blue-100 text-blue-600',
   },
   {
-    name: 'Ananya Gupta',
-    text: 'The love letter set was so beautifully crafted. It felt like a piece of art. Will definitely order again for special occasions!',
-    rating: 5,
-    occasion: 'Valentine\'s Day',
-  },
-  {
-    name: 'Vikram Singh',
-    text: 'I proposed with a custom star map from The Memory Knot and she said yes! The quality and packaging was luxury level.',
-    rating: 5,
-    occasion: 'Proposal',
+    name: 'Neha M.',
+    text: '"Such a unique and heartfelt gift. Will order again."',
+    initials: 'NM',
+    color: 'bg-purple-100 text-purple-600',
   },
 ];
 
 const Testimonials = () => {
   return (
-    <section className="py-20 lg:py-28 bg-background">
-      <div className="container mx-auto px-4 lg:px-8">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="text-center mb-14"
-        >
-          <span className="text-sm font-medium text-primary uppercase tracking-widest">Love Letters</span>
-          <h2 className="font-heading text-3xl lg:text-4xl font-bold mt-2 text-foreground">
-            What Our Customers Say
-          </h2>
-        </motion.div>
+    <section id="reviews" className="py-16 lg:py-20 bg-white">
+      <div className="max-w-6xl mx-auto px-4 lg:px-8">
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Section Header */}
+        <div className="text-center mb-12">
+          <div className="flex items-center justify-center gap-4 mb-3">
+            <div className="h-px flex-1 max-w-24" style={{ background: 'linear-gradient(to right, transparent, hsl(38,60%,50%))' }} />
+            <h2 className="font-heading text-3xl lg:text-4xl font-bold text-foreground">Why Choose Us?</h2>
+            <div className="h-px flex-1 max-w-24" style={{ background: 'linear-gradient(to left, transparent, hsl(38,60%,50%))' }} />
+          </div>
+          <p className="text-muted-foreground font-body text-sm">What Our Customers Say</p>
+        </div>
+
+        {/* Testimonial Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {testimonials.map((t, i) => (
             <motion.div
               key={t.name}
@@ -52,19 +45,32 @@ const Testimonials = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.1 }}
-              className="p-6 rounded-2xl bg-card shadow-card hover:shadow-elevated transition-all duration-500 relative"
+              className="bg-[#F8F3EE] rounded-xl p-6 border border-border/50 hover:shadow-card transition-all duration-300"
             >
-              <Quote size={32} className="text-rose-light/50 absolute top-4 right-4" />
-              <div className="flex gap-0.5 mb-4">
-                {Array.from({ length: t.rating }).map((_, j) => (
-                  <Star key={j} size={14} className="text-gold fill-gold" />
-                ))}
+              {/* Profile */}
+              <div className="flex items-center gap-3 mb-4">
+                <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-sm ${t.color}`}>
+                  {t.initials}
+                </div>
+                <div>
+                  <p className="font-heading font-semibold text-foreground text-sm">{t.name}</p>
+                  <div className="flex gap-0.5 mt-0.5">
+                    {Array(5).fill(0).map((_, j) => (
+                      <svg key={j} width="12" height="12" viewBox="0 0 24 24" fill="hsl(38,60%,50%)">
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                      </svg>
+                    ))}
+                  </div>
+                </div>
+                {/* Decorative initial avatar (right side) */}
+                <div className="ml-auto">
+                  <svg width="32" height="32" viewBox="0 0 64 64" fill="none" opacity="0.15">
+                    <circle cx="32" cy="22" r="14" stroke="hsl(347,52%,35%)" strokeWidth="2"/>
+                    <path d="M8 56c0-13.25 10.75-24 24-24s24 10.75 24 24" stroke="hsl(347,52%,35%)" strokeWidth="2"/>
+                  </svg>
+                </div>
               </div>
-              <p className="text-sm text-foreground/80 leading-relaxed italic">"{t.text}"</p>
-              <div className="mt-5 pt-4 border-t border-border/50">
-                <p className="font-heading font-semibold text-sm text-foreground">{t.name}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{t.occasion}</p>
-              </div>
+              <p className="text-sm text-foreground/75 leading-relaxed font-body italic">{t.text}</p>
             </motion.div>
           ))}
         </div>

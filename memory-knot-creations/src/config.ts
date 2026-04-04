@@ -1,9 +1,11 @@
 export const SITE_CONFIG = {
-  name: "The Memory Knot Creations",
-  email: "hello@memoryknot.com",
+  name: "The Memory Knot",
+  fullName: "The Memory Knot Creations",
+  tagline: "Turn Moments into Memories",
+  email: "support@thememoryknot.com",
   phone: "+91 7073691168",
   whatsappNumber: "917073691168",
-  address: "Mumbai, India",
+  address: "Jaipur, Rajasthan, India",
   instagram: "https://instagram.com/thememoryknot",
   facebook: "https://facebook.com/thememoryknot",
 };
