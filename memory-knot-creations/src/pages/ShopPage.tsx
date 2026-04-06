@@ -275,15 +275,22 @@ const ShopPage = () => {
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       loading="lazy"
                     />
-                    {product.featured && (
+                    {product.isSoldOut ? (
+                      <div className="absolute inset-x-0 top-6 flex justify-center z-10 pointer-events-none">
+                        <span className="px-4 py-1.5 bg-red-500/90 backdrop-blur-md text-white text-[11px] font-bold uppercase tracking-widest rounded shadow-lg border border-red-400/30">
+                          Sold Out
+                        </span>
+                      </div>
+                    ) : product.featured ? (
                       <span className="absolute top-2 left-2 px-2.5 py-0.5 bg-primary text-white text-[10px] font-bold uppercase tracking-wider rounded-sm">
                         Featured
                       </span>
-                    )}
+                    ) : null}
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
                       <button
                         onClick={() => addItem({ id: product.id, name: product.name, price: product.price, image: product.image })}
-                        className="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center shadow-soft hover:scale-110 transition-transform"
+                        disabled={product.isSoldOut}
+                        className={`w-9 h-9 rounded-full flex items-center justify-center shadow-soft transition-transform ${product.isSoldOut ? 'bg-muted text-muted-foreground cursor-not-allowed opacity-70' : 'bg-primary text-white hover:scale-110'}`}
                         aria-label="Add to cart"
                         id={`shop-add-${product.id}`}
                       >
@@ -305,10 +312,15 @@ const ShopPage = () => {
                     </div>
                     <button
                       onClick={() => addItem({ id: product.id, name: product.name, price: product.price, image: product.image })}
-                      className="mt-2 w-full py-1.5 text-xs font-medium border border-primary text-primary rounded hover:bg-primary hover:text-white transition-colors"
+                      disabled={product.isSoldOut}
+                      className={`mt-2 w-full py-1.5 text-xs font-medium border rounded transition-colors ${
+                        product.isSoldOut 
+                          ? 'border-border bg-secondary text-muted-foreground cursor-not-allowed' 
+                          : 'border-primary text-primary hover:bg-primary hover:text-white'
+                      }`}
                       id={`shop-cart-${product.id}`}
                     >
-                      Add to Cart
+                      {product.isSoldOut ? 'Sold Out' : 'Add to Cart'}
                     </button>
                   </div>
                 </motion.div>

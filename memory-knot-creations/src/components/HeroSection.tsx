@@ -1,9 +1,34 @@
-import { motion } from 'framer-motion';
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Heart } from 'lucide-react';
 import heroFamily from '@/assets/hero-family.png';
+import heroMarried from '@/assets/hero-married.png';
+import heroTeen from '@/assets/hero-teen.png';
+import heroSiblings from '@/assets/hero-siblings.png';
+import heroFriends from '@/assets/hero-friends.png';
+
+import logo from '@/assets/logo.jpg';
+
+const IMAGES = [
+  heroFamily,
+  heroMarried,
+  heroTeen,
+  heroSiblings,
+  heroFriends,
+  logo
+];
 
 const HeroSection = () => {
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentImageIndex((prev) => (prev + 1) % IMAGES.length);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <section id="home" className="bg-[#F8F3EE] overflow-hidden">
       {/* Decorative watercolor blobs */}
@@ -105,14 +130,25 @@ const HeroSection = () => {
           >
             {/* Decorative frame */}
             <div className="absolute -top-4 -right-4 w-full h-full border-2 border-primary/15 rounded-2xl hidden lg:block" />
-            <div className="relative rounded-2xl overflow-hidden shadow-elevated">
-              <img
-                src={heroFamily}
-                alt="Indian family with personalized photo frames"
-                className="w-full h-72 sm:h-96 lg:h-[480px] object-cover"
-              />
+            <div className="relative rounded-2xl overflow-hidden shadow-elevated w-full aspect-[4/3] sm:aspect-video lg:aspect-auto lg:h-[480px]">
+              <AnimatePresence>
+                <motion.img
+                  key={currentImageIndex}
+                  src={IMAGES[currentImageIndex]}
+                  initial={{ opacity: 0, scale: 1.05 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 1.2, ease: "easeOut" }}
+                  alt="Beautiful personalized gifts for your loved ones"
+                  className={`absolute inset-0 w-full h-full ${
+                    currentImageIndex === IMAGES.length - 1 
+                      ? 'object-contain bg-white/95 p-8 sm:p-12' 
+                      : 'object-cover'
+                  }`}
+                />
+              </AnimatePresence>
               {/* Watercolor overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-primary/5 via-transparent to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-primary/5 via-transparent to-transparent pointer-events-none" />
             </div>
 
             {/* Floating badge */}

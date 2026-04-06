@@ -78,15 +78,22 @@ const FeaturedProducts = () => {
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                   loading="lazy"
                 />
-                {product.tag && (
+                {product.isSoldOut ? (
+                  <div className="absolute inset-x-0 top-6 flex justify-center z-10 pointer-events-none">
+                    <span className="px-4 py-1.5 bg-red-500/90 backdrop-blur-md text-white text-[11px] font-bold uppercase tracking-widest rounded shadow-lg border border-red-400/30">
+                      Sold Out
+                    </span>
+                  </div>
+                ) : product.tag ? (
                   <span className="absolute top-3 left-3 px-3 py-1 bg-primary text-primary-foreground text-[10px] font-semibold uppercase tracking-wider rounded-full">
                     {product.tag}
                   </span>
-                )}
+                ) : null}
                 <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/10 transition-colors duration-300 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
                   <button
                     onClick={() => addItem({ id: product.id, name: product.name, price: product.price, image: product.image })}
-                    className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-soft hover:scale-110 transition-transform"
+                    disabled={product.isSoldOut}
+                    className={`w-10 h-10 rounded-full flex items-center justify-center shadow-soft transition-transform ${product.isSoldOut ? 'bg-muted text-muted-foreground cursor-not-allowed opacity-70' : 'bg-primary text-primary-foreground hover:scale-110'}`}
                     aria-label="Add to cart"
                   >
                     <ShoppingBag size={16} />
@@ -108,9 +115,12 @@ const FeaturedProducts = () => {
                   <span className="text-primary font-bold">₹{product.price.toLocaleString()}</span>
                   <button
                     onClick={() => addItem({ id: product.id, name: product.name, price: product.price, image: product.image })}
-                    className="text-xs text-muted-foreground hover:text-primary font-medium transition-colors lg:hidden"
+                    disabled={product.isSoldOut}
+                    className={`text-xs font-medium transition-colors lg:hidden ${
+                      product.isSoldOut ? 'text-muted-foreground cursor-not-allowed' : 'text-muted-foreground hover:text-primary'
+                    }`}
                   >
-                    Add to Cart
+                    {product.isSoldOut ? 'Sold Out' : 'Add to Cart'}
                   </button>
                 </div>
               </div>

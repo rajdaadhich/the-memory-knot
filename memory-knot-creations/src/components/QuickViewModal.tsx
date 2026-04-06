@@ -48,11 +48,17 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, onClose }) => 
               alt={product.name}
               className="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
             />
-            {product.featured && (
+            {product.isSoldOut ? (
+              <div className="absolute inset-x-0 top-6 flex justify-center z-10 pointer-events-none">
+                <span className="px-5 py-2 bg-red-500/90 backdrop-blur-md text-white text-xs font-bold uppercase tracking-widest rounded shadow-lg border border-red-400/30">
+                  Sold Out
+                </span>
+              </div>
+            ) : product.featured ? (
               <span className="absolute top-3 left-3 px-3 py-1 bg-primary text-white text-[10px] font-bold uppercase tracking-wide rounded-sm">
                 Featured
               </span>
-            )}
+            ) : null}
           </div>
 
           {/* Details Side */}
@@ -89,14 +95,21 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, onClose }) => 
             <div className="flex flex-col gap-3 pt-5 mt-5 border-t border-border/50">
               <button
                 onClick={() => {
-                  addItem({ id: product.id, name: product.name, price: product.price, image: product.image });
-                  onClose();
+                  if (!product.isSoldOut) {
+                    addItem({ id: product.id, name: product.name, price: product.price, image: product.image });
+                    onClose();
+                  }
                 }}
+                disabled={product.isSoldOut}
                 id={`quickview-add-${product.id}`}
-                className="w-full py-3.5 bg-primary text-white rounded-lg font-medium font-body hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 shadow-soft"
+                className={`w-full py-3.5 rounded-lg font-medium font-body transition-colors flex items-center justify-center gap-2 shadow-soft ${
+                  product.isSoldOut 
+                    ? 'bg-secondary text-muted-foreground cursor-not-allowed border border-border'
+                    : 'bg-primary text-white hover:bg-primary/90'
+                }`}
               >
                 <ShoppingBag size={17} />
-                Add to Cart
+                {product.isSoldOut ? 'Sold Out' : 'Add to Cart'}
               </button>
               <button className="flex items-center justify-center gap-2 text-xs font-semibold text-muted-foreground hover:text-primary transition-colors py-1 uppercase tracking-widest font-body">
                 <Share2 size={12} />

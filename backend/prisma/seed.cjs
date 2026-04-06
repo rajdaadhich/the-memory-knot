@@ -1,5 +1,5 @@
-const { PrismaClient } = require('@prisma/client')
-const prisma = new PrismaClient()
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
 
 async function main() {
   console.log('🧹 Cleaning existing data...');
@@ -8,57 +8,167 @@ async function main() {
   await prisma.product.deleteMany();
   await prisma.contact.deleteMany();
 
-  const products = [
-    // Memory Hampers
-    { name: 'Luxe Velvet Memory Hamper', price: 3499, image: 'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=800&q=80', description: 'Premium velvet box containing a photo frame, scented candle, and luxury chocolates.', featured: true, category: 'Hampers' },
-    { name: 'Scented Soy Candle Box', price: 1599, image: 'https://images.unsplash.com/photo-1603006905003-8d4fa925c486?w=800&q=80', description: 'Aromatic hamper with handcrafted soy candles and personalized journals.', featured: false, category: 'Hampers' },
-    { name: 'Chocolate & Memories Box', price: 1999, image: 'https://images.unsplash.com/photo-1582142407894-ec45a0242299?w=800&q=80', description: 'Classic wooden box filled with exotic chocolates and custom keychains.', featured: true, category: 'Hampers' },
-    { name: 'Midnight Celebration Hamper', price: 2999, image: 'https://images.unsplash.com/photo-1513201099705-a9746e1e201f?w=800&q=80', description: 'Perfect for late-night surprises, featuring a mini cake and photo cards.', featured: false, category: 'Hampers' },
-    { name: 'Eternal Love Wellness Kit', price: 2499, image: 'https://images.unsplash.com/photo-1515377905703-c4788e51af15?w=800&q=80', description: 'Self-care hamper with organic products and a custom mug.', featured: true, category: 'Hampers' },
-
-    // Photo Bouquets & Flowers
-    { name: 'Floating Memory Rose Bouquet', price: 2199, image: 'https://images.unsplash.com/photo-1522336572468-97b06e8ef143?w=800&q=80', description: 'Elegant red roses with small cherished photos tucked between them.', featured: true, category: 'Innovation' },
-    { name: 'Enchanted Pink Lily Bouquet', price: 1499, image: 'https://images.unsplash.com/photo-1596003906949-67221c37965c?w=800&q=80', description: 'Fresh lilies and carnations arranged in a vintage style.', featured: false, category: 'Flowers' },
-    { name: 'Bohemian Wildflower Mix', price: 999, image: 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=800&q=80', description: 'A whimsical collection of sunflowers and daisies.', featured: false, category: 'Flowers' },
-    { name: 'Golden Sun & Rose Bouquet', price: 1799, image: 'https://images.unsplash.com/photo-1582794543139-8ac9cb0f7b11?w=800&q=80', description: 'Vibrant yellow roses for a sunny celebration.', featured: true, category: 'Flowers' },
-
-    // Birthday Cakes
-    { name: 'Midnight Truffle Cake', price: 999, image: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=800&q=80', description: 'Rich dark chocolate truffle cake with elegant gold foil.', featured: true, category: 'Cakes' },
-    { name: 'Red Velvet Anniversary Heart', price: 1199, image: 'https://images.unsplash.com/photo-1563729784474-d77dbb933a9e?w=800&q=80', description: 'Romantic red velvet cake shaped like a heart.', featured: false, category: 'Cakes' },
-    { name: 'Berry Bliss Celebration Cake', price: 1299, image: 'https://images.unsplash.com/photo-15352311df780-2016259ce364?w=800&q=80', description: 'Light vanilla sponge topped with mixed fresh berries.', featured: false, category: 'Cakes' },
-    { name: 'Classic Butterscotch Delight', price: 899, image: 'https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?w=800&q=80', description: 'Crunchy butterscotch praline cake with caramel drizzle.', featured: false, category: 'Cakes' },
-
-    // Memory Photo Frames
-    { name: 'Rustic Oak Triple Frame', price: 1899, image: 'https://images.unsplash.com/photo-1572947650440-e8a97ef05ec0?w=800&q=80', description: 'Hand-carved oak wood frame that holds three best memories.', featured: true, category: 'Frames' },
-    { name: 'Minimalist Black & White Frame', price: 699, image: 'https://images.unsplash.com/photo-1583847268964-b28dc8f51f92?w=800&q=80', description: 'Sleek matte finish frame for modern interiors.', featured: false, category: 'Frames' },
-    { name: 'Vintage Photo Strip Frame', price: 599, image: 'https://images.unsplash.com/photo-1481277542470-605612bd2d61?w=800&q=80', description: 'Aesthetic frame designed for retro photo booth strips.', featured: false, category: 'Frames' },
-    { name: 'Custom "Where We Met" Map', price: 1199, image: 'https://images.unsplash.com/photo-1476970913411-817f75b808aa?w=800&q=80', description: 'Framed map coordinates of your special location.', featured: true, category: 'Frames' },
-
-    // Earrings & Jewelry
-    { name: 'Gold-Plated Infinity Dangles', price: 1299, image: 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=800&q=80', description: 'Elegant 18k gold-plated earrings for special occasions.', featured: true, category: 'Jewelry' },
-    { name: 'Handmade Pearl Studs', price: 799, image: 'https://images.unsplash.com/photo-1589128777073-263566ae5e4d?w=800&q=80', description: 'Fine freshwater pearl earrings with silver backing.', featured: false, category: 'Jewelry' },
-    { name: 'Boho Crystal Drop Earrings', price: 999, image: 'https://images.unsplash.com/photo-1515562141207-7a88fb0ce338?w=800&q=80', description: 'Sparkling crystal earrings that catch every light.', featured: false, category: 'Jewelry' },
-    { name: 'Personalized Initial Necklace', price: 1799, image: 'https://images.unsplash.com/photo-1611085583191-a3b1a20a7751?w=800&q=80', description: 'Minimalist silver necklace with custom name initial.', featured: true, category: 'Jewelry' },
-
-    // More Products to reach 25
-    { name: 'Crystal Memory Cube', price: 2499, image: 'https://images.unsplash.com/photo-1563861826100-9cb868fdbe1c?w=800&q=80', description: 'Laser-engraved crystal cube with a 3D photo inside.', featured: true, category: 'Innovation' },
-    { name: 'Preserved Flower Glass Dome', price: 3299, image: 'https://images.unsplash.com/photo-1522336572468-97b06e8ef143?w=800&q=80', description: 'Real rose treated to last for years in a bell jar.', featured: true, category: 'Home Decor' },
-    { name: 'Personalized LED Mirror', price: 1599, image: 'https://images.unsplash.com/photo-1618220179428-22790b461013?w=800&q=80', description: 'Mirror that glows with your name and light.', featured: false, category: 'Home Decor' },
-    { name: 'Gourmet Fruit & Nut Mix', price: 1499, image: 'https://images.unsplash.com/photo-1505575967455-40e256f73376?w=800&q=80', description: 'Healthy and premium gifting hamper for all ages.', featured: false, category: 'Hampers' }
+  const imageFiles = [
+    "WhatsApp Image 2026-04-06 at 2.53.55 PM.jpeg",
+    "WhatsApp Image 2026-04-06 at 2.53.56 PM (1).jpeg",
+    "WhatsApp Image 2026-04-06 at 2.53.56 PM.jpeg",
+    "WhatsApp Image 2026-04-06 at 2.53.58 PM (1).jpeg",
+    "WhatsApp Image 2026-04-06 at 2.53.58 PM (2).jpeg",
+    "WhatsApp Image 2026-04-06 at 2.53.58 PM.jpeg",
+    "WhatsApp Image 2026-04-06 at 2.53.59 PM (1).jpeg",
+    "WhatsApp Image 2026-04-06 at 2.53.59 PM.jpeg",
+    "WhatsApp Image 2026-04-06 at 2.54.00 PM (1).jpeg",
+    "WhatsApp Image 2026-04-06 at 2.54.00 PM (2).jpeg",
+    "WhatsApp Image 2026-04-06 at 2.54.00 PM.jpeg",
+    "WhatsApp Image 2026-04-06 at 2.54.01 PM (1).jpeg",
+    "WhatsApp Image 2026-04-06 at 2.54.01 PM (2).jpeg",
+    "WhatsApp Image 2026-04-06 at 2.54.01 PM.jpeg",
+    "WhatsApp Image 2026-04-06 at 2.54.02 PM (1).jpeg",
+    "WhatsApp Image 2026-04-06 at 2.54.02 PM (2).jpeg",
+    "WhatsApp Image 2026-04-06 at 2.54.02 PM.jpeg",
+    "WhatsApp Image 2026-04-06 at 2.54.03 PM (1).jpeg",
+    "WhatsApp Image 2026-04-06 at 2.54.03 PM (2).jpeg",
+    "WhatsApp Image 2026-04-06 at 2.54.03 PM (3).jpeg",
+    "WhatsApp Image 2026-04-06 at 2.54.03 PM.jpeg",
+    "WhatsApp Image 2026-04-06 at 2.54.04 PM (1).jpeg",
+    "WhatsApp Image 2026-04-06 at 2.54.04 PM.jpeg",
+    "WhatsApp Image 2026-04-06 at 2.54.05 PM (1).jpeg",
+    "WhatsApp Image 2026-04-06 at 2.54.05 PM (2).jpeg",
+    "WhatsApp Image 2026-04-06 at 2.54.05 PM.jpeg",
+    "WhatsApp Image 2026-04-06 at 2.54.06 PM.jpeg",
+    "WhatsApp Image 2026-04-06 at 2.54.07 PM (1).jpeg",
+    "WhatsApp Image 2026-04-06 at 2.54.07 PM (2).jpeg",
+    "WhatsApp Image 2026-04-06 at 2.54.07 PM.jpeg",
+    "WhatsApp Image 2026-04-06 at 2.54.08 PM (1).jpeg",
+    "WhatsApp Image 2026-04-06 at 2.54.08 PM (2).jpeg",
+    "WhatsApp Image 2026-04-06 at 2.54.08 PM.jpeg",
+    "WhatsApp Image 2026-04-06 at 2.54.09 PM (1).jpeg",
+    "WhatsApp Image 2026-04-06 at 2.54.09 PM.jpeg",
+    "WhatsApp Image 2026-04-06 at 2.54.10 PM (1).jpeg",
+    "WhatsApp Image 2026-04-06 at 2.54.10 PM (2).jpeg",
+    "WhatsApp Image 2026-04-06 at 2.54.10 PM.jpeg",
+    "WhatsApp Image 2026-04-06 at 2.54.11 PM (1).jpeg",
+    "WhatsApp Image 2026-04-06 at 2.54.11 PM (2).jpeg",
+    "WhatsApp Image 2026-04-06 at 2.54.11 PM.jpeg",
+    "WhatsApp Image 2026-04-06 at 2.54.12 PM (1).jpeg",
+    "WhatsApp Image 2026-04-06 at 2.54.12 PM (2).jpeg",
+    "WhatsApp Image 2026-04-06 at 2.54.12 PM.jpeg",
+    "WhatsApp Image 2026-04-06 at 2.54.13 PM (1).jpeg",
+    "WhatsApp Image 2026-04-06 at 2.54.13 PM.jpeg",
+    "WhatsApp Image 2026-04-06 at 2.54.14 PM (1).jpeg",
+    "WhatsApp Image 2026-04-06 at 2.54.14 PM (2).jpeg",
+    "WhatsApp Image 2026-04-06 at 2.54.14 PM (3).jpeg",
+    "WhatsApp Image 2026-04-06 at 2.54.14 PM.jpeg",
+    "WhatsApp Image 2026-04-06 at 2.54.15 PM (1).jpeg",
+    "WhatsApp Image 2026-04-06 at 2.54.15 PM (2).jpeg",
+    "WhatsApp Image 2026-04-06 at 2.54.15 PM.jpeg",
+    "WhatsApp Image 2026-04-06 at 2.54.16 PM (1).jpeg",
+    "WhatsApp Image 2026-04-06 at 2.54.16 PM (2).jpeg",
+    "WhatsApp Image 2026-04-06 at 2.54.16 PM.jpeg",
+    "WhatsApp Image 2026-04-06 at 2.54.17 PM (1).jpeg",
+    "WhatsApp Image 2026-04-06 at 2.54.17 PM (2).jpeg",
+    "WhatsApp Image 2026-04-06 at 2.54.17 PM.jpeg",
+    "WhatsApp Image 2026-04-06 at 2.54.18 PM (1).jpeg",
+    "WhatsApp Image 2026-04-06 at 2.54.18 PM (2).jpeg",
+    "WhatsApp Image 2026-04-06 at 2.54.18 PM.jpeg",
+    "WhatsApp Image 2026-04-06 at 2.54.19 PM (1).jpeg",
+    "WhatsApp Image 2026-04-06 at 2.54.19 PM (2).jpeg",
+    "WhatsApp Image 2026-04-06 at 2.54.19 PM.jpeg",
+    "WhatsApp Image 2026-04-06 at 2.54.20 PM (1).jpeg",
+    "WhatsApp Image 2026-04-06 at 2.54.20 PM (2).jpeg",
+    "WhatsApp Image 2026-04-06 at 2.54.20 PM.jpeg",
+    "WhatsApp Image 2026-04-06 at 2.54.21 PM (1).jpeg",
+    "WhatsApp Image 2026-04-06 at 2.54.21 PM (2).jpeg",
+    "WhatsApp Image 2026-04-06 at 2.54.21 PM (3).jpeg",
+    "WhatsApp Image 2026-04-06 at 2.54.21 PM.jpeg",
+    "WhatsApp Image 2026-04-06 at 2.54.22 PM (1).jpeg",
+    "WhatsApp Image 2026-04-06 at 2.54.22 PM.jpeg",
+    "WhatsApp Image 2026-04-06 at 3.00.08 PM.jpeg",
+    "WhatsApp Image 2026-04-06 at 3.07.18 PM (1).jpeg",
+    "WhatsApp Image 2026-04-06 at 3.07.18 PM (2).jpeg",
+    "WhatsApp Image 2026-04-06 at 3.07.18 PM.jpeg",
+    "WhatsApp Image 2026-04-06 at 3.07.19 PM (1).jpeg",
+    "WhatsApp Image 2026-04-06 at 3.07.19 PM (2).jpeg",
+    "WhatsApp Image 2026-04-06 at 3.07.19 PM.jpeg",
+    "WhatsApp Image 2026-04-06 at 3.07.20 PM (1).jpeg",
+    "WhatsApp Image 2026-04-06 at 3.07.20 PM (2).jpeg",
+    "WhatsApp Image 2026-04-06 at 3.07.20 PM (3).jpeg",
+    "WhatsApp Image 2026-04-06 at 3.07.20 PM.jpeg"
   ];
 
-  for (const product of products) {
-    await prisma.product.create({ data: product });
+  const categories = [
+    { 
+      name: 'Hampers', 
+      priceRange: [599, 799], 
+      titles: ['Luxury Velvet Hamper', 'Aesthetic Gift Box', 'Midnight Celebration Box', 'Wellness Gift Kit', 'Royal Gifting Suite', 'Sparkling Hamper Box'],
+      desc: 'A premium collection of gifts, sweets, and memories packed with love.'
+    },
+    { 
+      name: 'Frames', 
+      priceRange: [299, 499], 
+      titles: ['Oak Memory Frame', 'Handcrafted Glass Frame', 'Minimalist Photo Wall', 'Classic Oak Keepsake', 'Elegant Bordered Frame', 'Vintage Memory Stand'],
+      desc: 'Preserve your favorite moments in our high-quality handcrafted frames.'
+    },
+    { 
+      name: 'Collage', 
+      priceRange: [399, 649], 
+      titles: ['Infinity Mosaic Collage', 'Heart-Shaped Memories', 'Dreamy Photo Grid', 'Bond For Life Montage', 'Echoes of Love Collage', 'Timeless Story Board'],
+      desc: 'Multiple memories, one beautiful frame. Our collages tell your story.'
+    },
+    { 
+      name: 'Bouquet', 
+      priceRange: [449, 749], 
+      titles: ['Memory Photo Bouquet', 'Eternal Flower Bouquet', 'Silk Rose Memory Wrap', 'Lavender Photo Bloom', 'Innovated Memory Charm Burst', 'Fragrant Memory Wrap'],
+      desc: 'A unique twist on traditional flowers, blending images with floral beauty.'
+    },
+    { 
+      name: 'Miniatures', 
+      priceRange: [199, 399], 
+      titles: ['Personalized Initial Letter', 'Mini Love Keepsake', 'Aesthetic Photo Strip', 'Handmade Pocket Charm', 'Special Message Cube', 'Dainty Photo Keyring'],
+      desc: 'Small tokens of love that carry huge meaning. Perfect for surprises.'
+    }
+  ];
+
+  console.log('🚀 Seeding 85 products...');
+
+  for (let i = 0; i < imageFiles.length; i++) {
+    const filename = imageFiles[i];
+    // Rotate through categories cyclically
+    const cat = categories[i % categories.length];
+    
+    // Pick a title from the list based on rotation
+    const titleBase = cat.titles[Math.floor(i / categories.length) % cat.titles.length];
+    // Add a variation if we repeat titles
+    const title = i >= (cat.titles.length * categories.length) ? `${titleBase} (Special Edition)` : titleBase;
+
+    // Random price within range
+    const price = Math.floor(Math.random() * (cat.priceRange[1] - cat.priceRange[0] + 1)) + cat.priceRange[0];
+
+    await prisma.product.create({
+      data: {
+        name: title,
+        price: price,
+        image: `/images/${filename}`, // Public path for frontend
+        description: cat.desc,
+        category: cat.name,
+        featured: i % 10 === 0, // Mark every 10th item as featured
+        isSoldOut: false
+      }
+    });
+
+    if ((i + 1) % 10 === 0) {
+      console.log(`✅ Loaded ${i + 1} products...`);
+    }
   }
 
-  console.log('✅ Database Seeding Successful: ' + products.length + ' premium products added.');
+  console.log(`\n✨ DATABASE SEEDING COMPLETE: 85 Products Added! ✨`);
 }
 
 main()
   .catch((e) => {
-    console.error(e)
-    process.exit(1)
+    console.error(e);
+    process.exit(1);
   })
   .finally(async () => {
-    await prisma.$disconnect()
-  })
+    await prisma.$disconnect();
+  });

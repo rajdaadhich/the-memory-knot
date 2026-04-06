@@ -73,14 +73,23 @@ const BestSellers = () => {
                     loading="lazy"
                   />
                   {/* Badge */}
-                  <span className="absolute top-3 left-3 px-3 py-1 bg-primary text-white text-[11px] font-bold uppercase tracking-wide rounded-sm shadow-sm">
-                    {BADGES[i % BADGES.length]}
-                  </span>
+                  {product.isSoldOut ? (
+                    <div className="absolute inset-x-0 top-6 flex justify-center z-10 pointer-events-none">
+                      <span className="px-4 py-1.5 bg-red-500/90 backdrop-blur-md text-white text-[11px] font-bold uppercase tracking-widest rounded shadow-lg border border-red-400/30">
+                        Sold Out
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="absolute top-3 left-3 px-3 py-1 bg-primary text-white text-[11px] font-bold uppercase tracking-wide rounded-sm shadow-sm">
+                      {BADGES[i % BADGES.length]}
+                    </span>
+                  )}
                   {/* Hover overlay */}
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
                     <button
                       onClick={() => addItem({ id: product.id, name: product.name, price: product.price, image: product.image })}
-                      className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center shadow-soft hover:scale-110 transition-transform"
+                      disabled={product.isSoldOut}
+                      className={`w-10 h-10 rounded-full flex items-center justify-center shadow-soft transition-transform ${product.isSoldOut ? 'bg-muted text-muted-foreground cursor-not-allowed opacity-70' : 'bg-primary text-white hover:scale-110'}`}
                       aria-label="Add to cart"
                       id={`add-to-cart-${product.id}`}
                     >
@@ -102,10 +111,15 @@ const BestSellers = () => {
                     <span className="text-primary font-bold text-lg">₹{product.price.toLocaleString()}</span>
                     <button
                       onClick={() => addItem({ id: product.id, name: product.name, price: product.price, image: product.image })}
-                      className="text-xs text-primary border border-primary px-3 py-1 rounded font-medium hover:bg-primary hover:text-white transition-colors"
+                      disabled={product.isSoldOut}
+                      className={`text-xs px-3 py-1 rounded font-medium transition-colors border ${
+                        product.isSoldOut 
+                          ? 'border-border bg-secondary text-muted-foreground cursor-not-allowed' 
+                          : 'border-primary text-primary hover:bg-primary hover:text-white'
+                      }`}
                       id={`add-to-cart-mobile-${product.id}`}
                     >
-                      Add to Cart
+                      {product.isSoldOut ? 'Sold Out' : 'Add to Cart'}
                     </button>
                   </div>
                 </div>

@@ -27,7 +27,7 @@ const Footer = () => {
 
             {/* Payment icons */}
             <div className="flex items-center gap-2 ml-auto">
-              {['VISA', 'MC', 'Paytm', 'COD'].map(p => (
+              {['VISA', 'MC', 'Paytm'].map(p => (
                 <span
                   key={p}
                   className="px-2.5 py-1 bg-secondary text-foreground/60 text-[10px] font-bold rounded border border-border/60 font-body"

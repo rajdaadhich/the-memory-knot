@@ -39,7 +39,8 @@ const AdminDashboard = () => {
     description: '',
     image: '',
     category: '',
-    featured: false
+    featured: false,
+    isSoldOut: false
   });
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -91,7 +92,7 @@ const AdminDashboard = () => {
       }
       setShowProductModal(false);
       setEditingProduct(null);
-      setNewProduct({ name: '', price: '', description: '', image: '', category: '', featured: false });
+      setNewProduct({ name: '', price: '', description: '', image: '', category: '', featured: false, isSoldOut: false });
       fetchData();
     } catch {
       toast.error('Failed to save product');
@@ -110,12 +111,19 @@ const AdminDashboard = () => {
   };
 
   const handleUpdateOrderStatus = async (id: string, status: string) => {
+    // Optimistically update the UI
+    setData(prev => ({
+      ...prev,
+      orders: prev.orders.map(o => o.id === id ? { ...o, status } : o)
+    }));
+
     try {
       await api.updateAdminOrder(token!, id, status);
       toast.success(`Order status updated to ${status}`);
-      fetchData();
     } catch {
       toast.error('Failed to update order status');
+      // Revert by re-fetching if the API call fails
+      fetchData();
     }
   };
 
@@ -231,7 +239,7 @@ const AdminDashboard = () => {
                   id="add-product-btn"
                   onClick={() => {
                     setEditingProduct(null);
-                    setNewProduct({ name: '', price: '', description: '', image: '', category: '', featured: false });
+                    setNewProduct({ name: '', price: '', description: '', image: '', category: '', featured: false, isSoldOut: false });
                     setShowProductModal(true);
                   }}
                   className="bg-primary text-white px-4 py-2.5 rounded-lg font-medium font-body flex items-center gap-2 hover:bg-primary/90 shadow-soft text-sm"
@@ -264,11 +272,16 @@ const AdminDashboard = () => {
                         <td className="px-5 py-4 font-medium text-sm text-foreground">{p.name}</td>
                         <td className="px-5 py-4 text-sm font-bold text-primary">₹{Number(p.price).toLocaleString()}</td>
                         <td className="px-5 py-4">
-                          {p.featured ? (
-                            <span className="px-2.5 py-1 bg-primary/10 text-primary text-[10px] font-bold rounded-full uppercase">Featured</span>
-                          ) : (
-                            <span className="px-2.5 py-1 bg-secondary text-muted-foreground text-[10px] font-bold rounded-full uppercase">Standard</span>
-                          )}
+                          <div className="flex gap-2 flex-wrap">
+                            {p.featured ? (
+                              <span className="px-2.5 py-1 bg-primary/10 text-primary text-[10px] font-bold rounded-full uppercase">Featured</span>
+                            ) : (
+                              <span className="px-2.5 py-1 bg-secondary text-muted-foreground text-[10px] font-bold rounded-full uppercase">Standard</span>
+                            )}
+                            {p.isSoldOut && (
+                              <span className="px-2.5 py-1 bg-red-100 text-red-600 text-[10px] font-bold rounded-full uppercase">Sold Out</span>
+                            )}
+                          </div>
                         </td>
                         <td className="px-5 py-4 text-right">
                           <div className="flex items-center justify-end gap-1.5">
@@ -281,7 +294,8 @@ const AdminDashboard = () => {
                                   description: p.description || '',
                                   image: p.image || '',
                                   category: p.category || '',
-                                  featured: p.featured
+                                  featured: p.featured,
+                                  isSoldOut: p.isSoldOut || false
                                 });
                                 setShowProductModal(true);
                               }}
@@ -534,15 +548,27 @@ const AdminDashboard = () => {
                 />
               </div>
 
-              <label className="flex items-center gap-2.5 cursor-pointer">
-                <input
-                  type="checkbox"
-                  className="w-4 h-4 accent-primary"
-                  checked={newProduct.featured}
-                  onChange={e => setNewProduct({...newProduct, featured: e.target.checked})}
-                />
-                <span className="text-sm font-medium font-body text-foreground">Mark as Featured</span>
-              </label>
+              <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 pt-2">
+                <label className="flex items-center gap-2.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="w-4 h-4 accent-primary"
+                    checked={newProduct.featured}
+                    onChange={e => setNewProduct({...newProduct, featured: e.target.checked})}
+                  />
+                  <span className="text-sm font-medium font-body text-foreground">Mark as Featured</span>
+                </label>
+
+                <label className="flex items-center gap-2.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="w-4 h-4 accent-red-500"
+                    checked={newProduct.isSoldOut}
+                    onChange={e => setNewProduct({...newProduct, isSoldOut: e.target.checked})}
+                  />
+                  <span className="text-sm font-medium font-body text-foreground">Sold Out</span>
+                </label>
+              </div>
 
               <div className="pt-2 flex gap-3">
                 <button

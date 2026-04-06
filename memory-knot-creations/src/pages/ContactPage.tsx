@@ -111,13 +111,37 @@ const ContactPage = () => {
               </div>
 
               {/* Shipping & Returns */}
-              <div id="shipping" className="mt-10 p-5 bg-white rounded-xl border border-border/60">
-                <h3 className="font-heading font-semibold text-foreground mb-3">Shipping & Returns</h3>
-                <div className="space-y-2 text-sm text-foreground/65 font-body">
-                  <p>• Orders are processed within 5–7 business days</p>
-                  <p>• Pan-India delivery (2–5 additional days)</p>
-                  <p>• Contact us within 48 hours of delivery for any issues</p>
-                  <p>• We ensure every order is packaged with care</p>
+              <div id="shipping" className="mt-10 space-y-4">
+                <div className="p-5 bg-white rounded-xl border border-border/60">
+                  <h3 className="font-heading font-semibold text-foreground mb-3">Shipping Charges</h3>
+                  <div className="space-y-2 text-sm text-foreground/70 font-body">
+                    <div className="flex justify-between items-center bg-[#F8F3EE] p-2.5 rounded-lg border border-border/30">
+                      <span>Standard <span className="text-muted-foreground text-xs">(6-7 Days)</span></span>
+                      <span className="font-semibold text-primary">₹199</span>
+                    </div>
+                    <div className="flex justify-between items-center bg-[#F8F3EE] p-2.5 rounded-lg border border-border/30">
+                      <span>Express Delivery</span>
+                      <span className="font-semibold text-primary">₹399</span>
+                    </div>
+                    <div className="flex justify-between items-center bg-[#F8F3EE] p-2.5 rounded-lg border border-border/30">
+                      <span>Big Orders <span className="text-muted-foreground text-xs">(7-8 Days)</span></span>
+                      <span className="font-semibold text-primary">₹300</span>
+                    </div>
+                    <div className="flex justify-between items-center bg-[#F8F3EE] p-2.5 rounded-lg border border-border/30">
+                      <span>Express by Air</span>
+                      <span className="font-semibold text-primary">₹600 - ₹900</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-5 bg-white rounded-xl border border-border/60">
+                  <h3 className="font-heading font-semibold text-foreground mb-3">Policies & Returns</h3>
+                  <div className="space-y-2 text-sm text-foreground/65 font-body">
+                    <p>• Orders are processed within 5–7 business days</p>
+                    <p>• Pan-India delivery (2–5 additional days)</p>
+                    <p>• Contact us within 48 hours of delivery for any issues</p>
+                    <p>• We ensure every order is packaged with care</p>
+                  </div>
                 </div>
               </div>
             </motion.div>
