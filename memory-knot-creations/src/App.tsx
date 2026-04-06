@@ -13,6 +13,9 @@ import ContactPage from "./pages/ContactPage.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import AdminLogin from "./pages/Admin/Login.tsx";
 import AdminDashboard from "./pages/Admin/Dashboard.tsx";
+import CartDrawer from "./components/CartDrawer.tsx";
+import WhatsAppButton from "./components/WhatsAppButton.tsx";
+
 
 const queryClient = new QueryClient();
 
@@ -34,6 +37,9 @@ const App = () => (
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
+            {/* GLOBAL COMPONENTS - ONLY ONE INSTANCE EVER */}
+            <CartDrawer />
+            <WhatsAppButton />
           </BrowserRouter>
         </CartProvider>
       </TooltipProvider>

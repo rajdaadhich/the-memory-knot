@@ -173,8 +173,6 @@ const AboutPage = () => {
         </div>
 
         <Footer />
-        <CartDrawer />
-        <WhatsAppButton />
       </div>
     </>
   );

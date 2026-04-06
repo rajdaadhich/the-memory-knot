@@ -4,8 +4,6 @@ import { ShoppingBag, Eye, Search, SlidersHorizontal, X, ChevronDown } from 'luc
 import { Helmet } from 'react-helmet-async';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-import CartDrawer from '@/components/CartDrawer';
-import WhatsAppButton from '@/components/WhatsAppButton';
 import QuickViewModal from '@/components/QuickViewModal';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useCart } from '@/contexts/CartContext';
@@ -330,8 +328,6 @@ const ShopPage = () => {
         </div>
 
         <Footer />
-        <CartDrawer />
-        <WhatsAppButton />
         <QuickViewModal product={selectedProduct} onClose={() => setSelectedProduct(null)} />
       </div>
     </>

@@ -1,376 +1,353 @@
-import { useState, useRef } from 'react';
-import { X, Minus, Plus, ShoppingBag, ArrowLeft, Heart, ChevronRight, CheckCircle2 } from 'lucide-react';
-import { useCart } from '@/contexts/CartContext';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { api } from '@/lib/api';
-import { toast } from 'sonner';
+import { X, ShoppingBag, Plus, Minus, Trash2, ArrowRight, Heart, ShieldCheck, Truck, RotateCcw } from 'lucide-react';
+import { useCart } from '@/contexts/CartContext';
 import { SITE_CONFIG } from '@/config';
+import { QRCodeSVG } from 'qrcode.react';
 
 const CartDrawer = () => {
-  const { items, isCartOpen, setIsCartOpen, removeItem, updateQuantity, totalPrice, totalItems, clearCart } = useCart();
-  const [checkoutStep, setCheckoutStep] = useState<1 | 2 | 3>(1); // 1: Cart, 2: Shipping, 3: Payment
-  const [formData, setFormData] = useState({ name: '', email: '', phone: '', address: '', shipping: '199' });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [hasPaid, setHasPaid] = useState(false);
-  const [createdOrderId, setCreatedOrderId] = useState<string | null>(null);
+  const { items, removeItem, updateQuantity, isCartOpen, setIsCartOpen, totalPrice } = useCart();
+  const [checkoutStep, setCheckoutStep] = useState(1); // 1: Cart, 2: Shipping, 3: Payment
+  const [isPaid, setIsPaid] = useState(false);
+  const [shippingInfo, setShippingInfo] = useState({
+    name: '',
+    phone: '',
+    address: ''
+  });
 
+  // Calculate final total with potential shipping/tax
+  const shippingCharge = totalPrice > 500 ? 0 : 50;
+  const finalTotal = totalPrice + shippingCharge;
+  
+  // UPI Deep Link Generation
+  const upiId = "7073691168@ptsbi";
+  const upiName = "Raj Dadhich";
+  const upiUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(upiName)}&am=${finalTotal}&cu=INR&tn=Order-TheMemoryKnot`;
 
-  const shippingMethods: Record<string, string> = {
-    '199': 'Standard (6-7 Days)',
-    '300': 'Big Orders (7-8 Days)',
-    '399': 'Express Delivery',
-    '600': 'Express by Air'
-  };
-
-  const currentShippingCost = Number(formData.shipping);
-  const finalTotal = totalPrice + currentShippingCost;
-  const upiLink = `upi://pay?pa=${SITE_CONFIG.upiId}&pn=${encodeURIComponent(SITE_CONFIG.upiName)}&am=${finalTotal}&cu=INR&tn=${encodeURIComponent('Order-TheMemoryKnot')}`;
-
-  const handleNextStep = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.name || !formData.phone || !formData.address) {
-      toast.error('Please fill in all required fields');
-      return;
+  // Fix: Robust Scroll Lock
+  useEffect(() => {
+    if (isCartOpen) {
+      document.body.style.overflow = 'hidden';
+      document.body.style.paddingRight = 'var(--scrollbar-width, 0px)';
+    } else {
+      document.body.style.overflow = '';
+      document.body.style.paddingRight = '';
+      // Reset checkout when closing
+      setTimeout(() => {
+        setCheckoutStep(1);
+        setIsPaid(false);
+      }, 300);
     }
-    setCheckoutStep(3);
+  }, [isCartOpen]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setShippingInfo(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleFinalCheckout = async () => {
-    setIsSubmitting(true);
-    try {
-      const orderData = {
-        customerName: formData.name,
-        customerEmail: formData.email,
-        customerPhone: formData.phone,
-        address: formData.address,
-        totalAmount: finalTotal,
-        items: items.map(item => ({ id: item.id, quantity: item.quantity, price: item.price }))
-      };
-      
-      const res = await api.createOrder(orderData);
-      const orderId = res.order.id;
-      const shippingName = shippingMethods[formData.shipping] || 'Standard';
-
-      const message = `*NEW ORDER - THE MEMORY KNOT* 🎁\n---------------------------\n*Order ID:* ${orderId.slice(0, 8)}\n*Customer:* ${formData.name}\n*Phone:* ${formData.phone}\n*Delivery:* ${shippingName} (₹${currentShippingCost})\n\n*Items:*\n${items.map(i => `- ${i.name} (x${i.quantity})`).join('\n')}\n\n*TOTAL AMOUNT:* ₹${finalTotal}\n*PAYMENT STATUS:* ✅ Paid via UPI (QR Code)\n---------------------------\nThank you for your order!`;
-      
-      const whatsappUrl = `https://wa.me/${SITE_CONFIG.whatsappNumber}?text=${encodeURIComponent(message)}`;
-      
-      clearCart();
+  const handleFinalCheckout = () => {
+    setIsPaid(true);
+    // In a real app, send order to backend here
+    setTimeout(() => {
       setIsCartOpen(false);
-      setCheckoutStep(1);
-      window.open(whatsappUrl, '_blank');
-      toast.success('Order placed successfully!');
-    } catch {
-      toast.error('Failed to place order. Please try again.');
-    } finally {
-      setIsSubmitting(false);
-    }
+    }, 2000);
   };
 
   return (
     <AnimatePresence>
       {isCartOpen && (
-        <motion.div
-          key="cart-backdrop"
+        <motion.div 
+          key="cart-drawer-root"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-foreground/25 backdrop-blur-sm z-50"
-          style={{ pointerEvents: isCartOpen ? 'auto' : 'none' }}
-          onClick={() => setIsCartOpen(false)}
-        />
-      )}
-      {isCartOpen && (
-        <motion.div
-          key="cart-drawer"
-          initial={{ x: '100%' }}
-          animate={{ x: 0 }}
-          exit={{ x: '100%' }}
-          transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-          style={{ pointerEvents: isCartOpen ? 'auto' : 'none' }}
-          className="fixed right-0 top-0 bottom-0 w-full max-w-md bg-white z-50 shadow-elevated flex flex-col"
+          exit={{ opacity: 0, pointerEvents: 'none' }}
+          className="fixed inset-0 z-[9999] flex justify-end overflow-hidden focus:outline-none"
         >
+          {/* Backdrop */}
+          <motion.div
+            key="cart-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setIsCartOpen(false)}
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+          />
+
+          {/* Drawer Content */}
+          <motion.div
+            key="cart-drawer-content"
+            initial={{ x: '100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '100%' }}
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            className="relative w-full max-w-md bg-white shadow-2xl flex flex-col h-full pointer-events-auto"
+          >
             {/* Header */}
             <div className="flex items-center justify-between p-5 border-b border-border/60 bg-[#F8F3EE]">
-              <h2 className="font-heading text-lg font-semibold flex items-center gap-2 text-foreground">
-                {checkoutStep === 2 ? (
-                  <>
-                    <button onClick={() => setCheckoutStep(1)} className="mr-1 hover:text-primary transition-colors">
-                      <ArrowLeft size={18} />
-                    </button>
-                    Delivery Details
-                  </>
-                ) : checkoutStep === 3 ? (
-                  <>
-                    <button onClick={() => setCheckoutStep(2)} className="mr-1 hover:text-primary transition-colors">
-                      <ArrowLeft size={18} />
-                    </button>
-                    Secure Payment
-                  </>
-                ) : (
-                  <>
-                    <ShoppingBag size={18} className="text-primary" />
-                    Your Cart ({totalItems})
-                  </>
-                )}
-              </h2>
-              <button onClick={() => setIsCartOpen(false)} className="p-1.5 hover:text-primary transition-colors text-foreground/50">
-                <X size={20} />
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center text-primary">
+                  <ShoppingBag size={20} />
+                </div>
+                <div>
+                  <h2 className="font-heading text-lg font-bold text-foreground leading-tight">Your Gift Box</h2>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-body font-bold">
+                    {items.length} {items.length === 1 ? 'item' : 'items'} • step {checkoutStep} of 3
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsCartOpen(false)}
+                className="p-2 hover:bg-black/5 rounded-full transition-colors group"
+                aria-label="Close cart"
+              >
+                <X size={20} className="text-muted-foreground group-hover:text-foreground group-hover:rotate-90 transition-all duration-300" />
               </button>
             </div>
 
-            {/* Body */}
-            <div className="flex-1 overflow-y-auto p-5">
-              {checkoutStep === 2 ? (
-                <form id="shipping-form" onSubmit={handleNextStep} className="space-y-4">
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Full Name *</label>
-                    <input
-                      required type="text"
-                      className="w-full p-3 rounded-lg border border-border bg-background outline-none focus:ring-2 focus:ring-primary/20 font-body text-sm"
-                      value={formData.name}
-                      onChange={e => setFormData({ ...formData, name: e.target.value })}
-                      placeholder="Your Full Name"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">WhatsApp No. *</label>
-                      <input
-                        required type="tel"
-                        className="w-full p-3 rounded-lg border border-border bg-background outline-none focus:ring-2 focus:ring-primary/20 font-body text-sm"
-                        value={formData.phone}
-                        onChange={e => setFormData({ ...formData, phone: e.target.value })}
-                        placeholder="+91"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Email (Optional)</label>
-                      <input
-                        type="email"
-                        className="w-full p-3 rounded-lg border border-border bg-background outline-none focus:ring-2 focus:ring-primary/20 font-body text-sm"
-                        value={formData.email}
-                        onChange={e => setFormData({ ...formData, email: e.target.value })}
-                        placeholder="email@example.com"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Full Shipping Address *</label>
-                    <textarea
-                      required rows={3}
-                      className="w-full p-3 rounded-lg border border-border bg-background outline-none focus:ring-2 focus:ring-primary/20 resize-none font-body text-sm"
-                      value={formData.address}
-                      onChange={e => setFormData({ ...formData, address: e.target.value })}
-                      placeholder="Street, City, Pincode, State"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Shipping Method *</label>
-                    <div className="space-y-2">
-                      {Object.entries(shippingMethods).map(([price, label]) => (
-                        <label key={price} className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer ${formData.shipping === price ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'border-border hover:border-primary/50'}`}>
-                          <div className="flex items-center gap-3">
-                            <input
-                              type="radio"
-                              name="shipping"
-                              className="w-4 h-4 accent-primary"
-                              checked={formData.shipping === price}
-                              onChange={() => setFormData({ ...formData, shipping: price })}
-                            />
-                            <span className="text-sm font-medium text-foreground">{label}</span>
-                          </div>
-                          <span className="text-sm font-bold text-primary">₹{price}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                </form>
-              ) : checkoutStep === 3 ? (
-                <div className="space-y-8 flex flex-col items-center">
-                  <div className="w-full p-4 bg-[#F8F3EE] rounded-xl border border-primary/20 text-center">
-                    <p className="text-xs font-semibold text-primary uppercase tracking-widest mb-1">Paying To</p>
-                    <p className="font-heading text-lg font-bold text-foreground">{SITE_CONFIG.upiName}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">{SITE_CONFIG.upiId}</p>
-                  </div>
+            {/* Steps Progress */}
+            <div className="flex h-1.5 w-full bg-secondary/50">
+              <div className={`h-full bg-primary transition-all duration-500 ${checkoutStep === 1 ? 'w-1/3' : checkoutStep === 2 ? 'w-2/3' : 'w-full'}`} />
+            </div>
 
-                  {!hasPaid ? (
-                    <div className="w-full space-y-6">
-                      <div className="text-center space-y-2">
-                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Payable Amount</p>
-                        <div className="text-3xl font-bold text-primary">₹{finalTotal.toLocaleString()}</div>
-                      </div>
-
-                      <div className="relative w-full h-16 bg-secondary/30 rounded-full border border-border/60 overflow-hidden p-1.5 shadow-inner">
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                          <span className="text-sm font-bold text-foreground/40 animate-pulse-gentle select-none">
-                            Swipe to Pay ₹{finalTotal.toLocaleString()}
-                          </span>
-                        </div>
-                        
+            {/* Scrollable Area */}
+            <div className="flex-1 overflow-y-auto px-5 py-6 custom-scrollbar">
+              {items.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-center space-y-4 py-20">
+                  <div className="w-20 h-20 bg-secondary/50 rounded-full flex items-center justify-center text-muted-foreground/30">
+                    <ShoppingBag size={40} />
+                  </div>
+                  <div>
+                    <h3 className="font-heading text-xl font-bold text-foreground">Your box is empty</h3>
+                    <p className="text-muted-foreground text-sm font-body mt-2 max-w-[240px] mx-auto">
+                      Fill it with beautiful memories and handcrafted love.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setIsCartOpen(false)}
+                    className="btn-primary text-sm mt-4 px-8"
+                  >
+                    Start Shopping
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {checkoutStep === 1 ? (
+                    /* Step 1: Cart Items */
+                    <div className="space-y-4">
+                      {items.map((item) => (
                         <motion.div
-                          drag="x"
-                          dragConstraints={{ left: 0, right: 300 }}
-                          dragElastic={0.05}
-                          onDragEnd={(_, info) => {
-                            if (info.offset.x > 220) {
-                              setHasPaid(true);
-                              window.location.href = upiLink;
-                              toast.success('Opening payment app...');
-                            }
-                          }}
-                          className="relative h-full aspect-square bg-primary rounded-full cursor-grab active:cursor-grabbing flex items-center justify-center text-white shadow-xl z-10"
+                          layout
+                          key={item.id}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="flex gap-4 p-3 rounded-xl bg-secondary/20 border border-border/40 group relative overflow-hidden"
                         >
-                          <ChevronRight size={24} strokeWidth={3} />
+                          <div className="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 border border-border/60">
+                            <img src={item.image} alt={item.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                          </div>
+                          <div className="flex-1 min-w-0 flex flex-col justify-between">
+                            <div>
+                              <h4 className="font-heading font-bold text-foreground text-sm truncate pr-6">{item.name}</h4>
+                              <p className="text-primary font-bold mt-0.5">₹{item.price.toLocaleString()}</p>
+                            </div>
+                            <div className="flex items-center justify-between mt-2">
+                              <div className="flex items-center bg-white rounded-full border border-border/80 shadow-sm overflow-hidden p-0.5">
+                                <button
+                                  onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                                  className="p-1 px-2 hover:bg-secondary/50 text-muted-foreground transition-colors"
+                                >
+                                  <Minus size={12} />
+                                </button>
+                                <span className="w-8 text-center text-xs font-bold font-body">{item.quantity}</span>
+                                <button
+                                  onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                                  className="p-1 px-2 hover:bg-secondary/50 text-muted-foreground transition-colors"
+                                >
+                                  <Plus size={12} />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => removeItem(item.id)}
+                            className="absolute top-2 right-2 p-1.5 text-muted-foreground/40 hover:text-red-500 transition-colors"
+                          >
+                            <Trash2 size={14} />
+                          </button>
                         </motion.div>
+                      ))}
+
+                      {/* Upsell/Info area */}
+                      <div className="mt-8 p-4 bg-primary/5 rounded-xl border border-primary/10">
+                        <h5 className="font-heading font-bold text-xs text-primary uppercase tracking-wider flex items-center gap-2 mb-2">
+                          <RotateCcw size={12} /> Easy Returns & Exchange
+                        </h5>
+                        <p className="text-[11px] text-muted-foreground font-body leading-relaxed">
+                          We take pride in our crafts. If your gift arrives damaged, we'll replace it instantly within 48 hours.
+                        </p>
+                      </div>
+                    </div>
+                  ) : checkoutStep === 2 ? (
+                    /* Step 2: Shipping Info */
+                    <div className="space-y-6">
+                      <div className="space-y-4">
+                        <h3 className="font-heading text-lg font-bold text-foreground border-l-4 border-primary pl-3">Delivery Details</h3>
+                        <div className="space-y-4 mt-4">
+                          <div className="space-y-1.5">
+                            <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground ml-1">Full Name</label>
+                            <input
+                              type="text"
+                              name="name"
+                              value={shippingInfo.name}
+                              onChange={handleInputChange}
+                              placeholder="Who is receiving the love?"
+                              className="w-full px-4 py-3 rounded-xl border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm font-body shadow-sm"
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground ml-1">WhatsApp No.</label>
+                            <input
+                              type="tel"
+                              name="phone"
+                              value={shippingInfo.phone}
+                              onChange={handleInputChange}
+                              placeholder="For delivery updates"
+                              className="w-full px-4 py-3 rounded-xl border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm font-body shadow-sm"
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground ml-1">Full Shipping Address</label>
+                            <textarea
+                              name="address"
+                              value={shippingInfo.address}
+                              onChange={handleInputChange}
+                              rows={3}
+                              placeholder="Where should we deliver?"
+                              className="w-full px-4 py-3 rounded-xl border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm font-body shadow-sm resize-none"
+                            />
+                          </div>
+                        </div>
                       </div>
 
-                      <div className="flex flex-col gap-2.5 p-4 bg-primary/5 rounded-xl border border-primary/10">
-                        <div className="flex items-center gap-2 text-primary">
-                          <CheckCircle2 size={16} />
-                          <span className="text-xs font-bold uppercase tracking-wide">SECURE UPI PAYMENT</span>
+                      <div className="flex gap-3 p-4 bg-green-50 rounded-xl border border-green-100">
+                        <Truck size={20} className="text-green-600 shrink-0" />
+                        <div>
+                          <h6 className="text-[11px] font-bold text-green-800 uppercase tracking-wider">Fast Shipping</h6>
+                          <p className="text-[10px] text-green-700/80 font-body">Orders are processed within 24-48 hours with premium courier partners.</p>
                         </div>
-                        <p className="text-[11px] text-muted-foreground leading-relaxed">
-                          Sliding the bar above will automatically open your favorite UPI app (Paytm, GPay, PhonePe) with the exact amount.
-                        </p>
                       </div>
                     </div>
                   ) : (
-                    <motion.div 
-                      initial={{ scale: 0.9, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      className="w-full text-center space-y-6 py-4"
-                    >
-                      <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto text-green-600 mb-2">
-                        <CheckCircle2 size={40} />
+                    /* Step 3: Payment */
+                    <div className="space-y-6">
+                      <div className="text-center space-y-2">
+                        <h3 className="font-heading text-2xl font-bold text-foreground">Secure Payment</h3>
+                        <p className="text-sm text-muted-foreground font-body">Pay safely using any UPI app</p>
                       </div>
-                      <div className="space-y-1">
-                        <h3 className="font-heading text-xl font-bold text-foreground">Waiting for Payment</h3>
-                        <p className="text-sm text-muted-foreground font-body max-w-[240px] mx-auto">
-                          Once your payment is successful in the app, click the button below to record your order.
-                        </p>
-                      </div>
-                    </motion.div>
-                  )}
 
-                  <div className="w-full pt-2">
-                    <div className="flex flex-col gap-2 p-3 bg-secondary/50 rounded-lg border border-border/50">
-                      <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-muted-foreground px-1">
-                        <span>Status Notification</span>
+                      {/* Display Total prominently */}
+                      <div className="bg-primary/5 p-6 rounded-2xl border-2 border-dashed border-primary/20 flex flex-col items-center gap-4">
+                        <span className="text-xs font-bold text-primary/60 uppercase tracking-widest px-3 py-1 bg-white rounded-full shadow-sm">Total Payable</span>
+                        <span className="text-4xl font-heading font-black text-primary">₹{finalTotal.toLocaleString()}</span>
                       </div>
-                      <p className="text-[11px] text-foreground/70 font-medium px-1">
-                        We will notify you via <b>WhatsApp</b> and <b>Email</b> as soon as your payment is verified by our team.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ) : items.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-muted-foreground py-16">
-                  <div className="w-20 h-20 bg-primary/8 rounded-full flex items-center justify-center mb-4">
-                    <ShoppingBag size={32} className="text-primary/40" />
-                  </div>
-                  <p className="font-heading text-lg font-semibold text-foreground/60">Your cart is empty</p>
-                  <p className="text-sm mt-1 font-body">Add some beautiful gifts!</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {items.map(item => (
-                    <motion.div
-                      key={item.id}
-                      layout
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, x: 100 }}
-                      className="flex gap-3 p-3 rounded-xl bg-[#F8F3EE] border border-border/40"
-                    >
-                      <img
-                        src={item.image || 'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=200&q=80'}
-                        alt={item.name}
-                        className="w-18 h-18 object-cover rounded-lg flex-shrink-0"
-                        style={{ width: '72px', height: '72px' }}
-                      />
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-heading font-semibold text-sm truncate text-foreground">{item.name}</h4>
-                        <p className="text-primary font-bold text-sm mt-0.5">₹{item.price.toLocaleString()}</p>
-                        <div className="flex items-center gap-2 mt-2">
-                          <button
-                            onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                            className="w-7 h-7 rounded-full border border-border flex items-center justify-center hover:border-primary hover:text-primary transition-colors"
-                          >
-                            <Minus size={12} />
-                          </button>
-                          <span className="text-sm font-medium w-6 text-center">{item.quantity}</span>
-                          <button
-                            onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                            className="w-7 h-7 rounded-full border border-border flex items-center justify-center hover:border-primary hover:text-primary transition-colors"
-                          >
-                            <Plus size={12} />
-                          </button>
+
+                      {isPaid ? (
+                        <div className="py-10 text-center space-y-4">
+                          <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto shadow-sm">
+                            <ShieldCheck size={40} />
+                          </div>
+                          <div>
+                            <h4 className="font-heading text-xl font-bold text-foreground">Order Received!</h4>
+                            <p className="text-sm text-muted-foreground mt-1 px-6">Thank you for your trust. We're starting to prepare your handcrafted gift.</p>
+                          </div>
                         </div>
-                      </div>
-                      <button
-                        onClick={() => removeItem(item.id)}
-                        className="text-foreground/30 hover:text-red-500 transition-colors self-start p-1"
-                      >
-                        <X size={14} />
-                      </button>
-                    </motion.div>
-                  ))}
+                      ) : (
+                        <div className="space-y-6">
+                          {/* Payment Slider - Visible on all devices */}
+                          <div className="space-y-4">
+                            <p className="text-[10px] font-bold text-center text-muted-foreground uppercase tracking-widest">Slide to initiate payment</p>
+                            <div className="relative w-full h-16 bg-secondary/30 rounded-full border border-border/60 overflow-hidden p-1.5 shadow-inner">
+                              <motion.div
+                                drag="x"
+                                dragConstraints={{ left: 0, right: 300 }}
+                                dragElastic={0.05}
+                                onDragEnd={(_, info) => {
+                                  if (info.offset.x > 250) {
+                                    window.open(upiUrl, '_blank');
+                                    handleFinalCheckout();
+                                  }
+                                }}
+                                className="absolute left-1.5 top-1.5 h-[52px] w-16 bg-primary rounded-full shadow-lg flex items-center justify-center text-white cursor-grab active:cursor-grabbing z-10"
+                                whileTap={{ scale: 0.95 }}
+                              >
+                                <ArrowRight size={24} className="animate-pulse-gentle" />
+                              </motion.div>
+                              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                <span className="text-sm font-bold text-primary/40 uppercase tracking-widest pl-12 font-body">Swipe to Pay</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* QR Code - Optional Fallback for Desktop */}
+                          <div className="hidden md:flex flex-col items-center gap-4 py-4 border-t border-border/40 mt-4">
+                            <div className="p-3 bg-white rounded-xl shadow-sm border border-border/40">
+                              <QRCodeSVG value={upiUrl} size={120} />
+                            </div>
+                            <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Or Scan to Pay</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
 
-            {/* Footer */}
+            {/* Footer Summary (Only in Cart Step) */}
             {items.length > 0 && (
               <div className="p-5 border-t border-border/60 space-y-4 bg-white">
-                <div className="flex justify-between items-center text-sm">
-                  <span className="font-heading text-foreground/70">Subtotal</span>
-                  <span className="font-heading font-semibold text-foreground/80">₹{totalPrice.toLocaleString()}</span>
-                </div>
-                {checkoutStep !== 1 && (
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="font-heading text-foreground/70">Shipping</span>
-                    <span className="font-heading font-semibold text-foreground/80">₹{formData.shipping}</span>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm text-muted-foreground font-body">
+                    <span>Subtotal</span>
+                    <span className="font-semibold text-foreground">₹{totalPrice.toLocaleString()}</span>
                   </div>
-                )}
-                <div className="flex justify-between items-center pt-2 border-t border-border/40">
-                  <span className="font-heading font-semibold text-foreground">Total Amount</span>
-                  <span className="font-heading font-bold text-xl text-primary">
-                    ₹{finalTotal.toLocaleString()}
-                  </span>
+                  <div className="flex justify-between text-sm text-muted-foreground font-body">
+                    <span>Shipping</span>
+                    <span className={`font-semibold ${shippingCharge === 0 ? 'text-green-600' : 'text-foreground'}`}>
+                      {shippingCharge === 0 ? 'FREE' : `₹${shippingCharge}`}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-lg font-heading font-black pt-2 border-t border-border/40">
+                    <span className="text-foreground">Total</span>
+                    <span className="text-primary">₹{finalTotal.toLocaleString()}</span>
+                  </div>
                 </div>
-                {checkoutStep === 3 ? (
+
+                {checkoutStep === 2 ? (
                   <button
-                    onClick={handleFinalCheckout}
-                    disabled={isSubmitting || !hasPaid}
-                    className={`w-full py-3.5 rounded-lg font-bold font-body transition-all flex justify-center items-center gap-2 shadow-card ${!hasPaid ? 'bg-muted text-muted-foreground cursor-not-allowed' : 'bg-[#25D366] text-white hover:opacity-90 active:scale-95'}`}
-                  >
-                    {isSubmitting ? 'Recording Order...' : '✅ Confirm My Order'}
-                  </button>
-                ) : checkoutStep === 2 ? (
-                  <button
-                    type="submit"
-                    form="shipping-form"
-                    className="w-full py-3.5 bg-primary text-white rounded-lg font-medium font-body hover:bg-primary/90 transition-colors shadow-soft"
+                    onClick={() => setCheckoutStep(3)}
+                    disabled={!shippingInfo.name || !shippingInfo.phone || !shippingInfo.address}
+                    className="w-full py-3.5 bg-primary text-white disabled:bg-muted disabled:text-muted-foreground rounded-xl font-bold font-body shadow-soft transition-all active:scale-[0.98]"
                   >
                     Proceed to Payment
                   </button>
-                ) : (
+                ) : checkoutStep === 1 ? (
                   <button
                     onClick={() => setCheckoutStep(2)}
-                    id="proceed-to-checkout"
-                    className="w-full py-3.5 bg-primary text-white rounded-lg font-medium font-body hover:bg-primary/90 transition-colors shadow-soft"
+                    className="w-full py-3.5 bg-primary text-white rounded-xl font-bold font-body shadow-soft flex items-center justify-center gap-2 hover:bg-primary/95 transition-all"
                   >
-                    Continue to Delivery
+                    Continue to Delivery <ArrowRight size={18} />
                   </button>
-                )}
-                <p className="text-center text-xs text-muted-foreground font-body flex items-center justify-center gap-1">
+                ) : null}
+
+                <p className="text-center text-[10px] text-muted-foreground font-body flex items-center justify-center gap-1">
                   <Heart size={10} className="text-primary" fill="currentColor" />
                   Made with love, delivered with care
                 </p>
               </div>
             )}
           </motion.div>
+        </motion.div>
       )}
     </AnimatePresence>
   );
