@@ -24,7 +24,7 @@ const CartDrawer = () => {
 
   const currentShippingCost = Number(formData.shipping);
   const finalTotal = totalPrice + currentShippingCost;
-  const upiLink = `upi://pay?pa=${SITE_CONFIG.upiId}&pn=${SITE_CONFIG.upiName}&am=${finalTotal}&cu=INR&tn=Order_TheMemoryKnot`;
+  const upiLink = `upi://pay?pa=${SITE_CONFIG.upiId}&pn=${encodeURIComponent(SITE_CONFIG.upiName)}&am=${finalTotal}&cu=INR&tn=${encodeURIComponent('Order-TheMemoryKnot')}`;
 
   const handleNextStep = (e: React.FormEvent) => {
     e.preventDefault();
