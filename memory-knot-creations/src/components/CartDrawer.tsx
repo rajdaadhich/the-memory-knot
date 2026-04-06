@@ -1,9 +1,16 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ShoppingBag, Plus, Minus, Trash2, ArrowRight, Heart, ShieldCheck, Truck, RotateCcw } from 'lucide-react';
+import { X, ShoppingBag, Plus, Minus, Trash2, ArrowRight, Heart, ShieldCheck, Truck, RotateCcw, Plane, Package, Zap } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
 import { SITE_CONFIG } from '@/config';
 import { QRCodeSVG } from 'qrcode.react';
+
+const SHIPPING_OPTIONS = [
+  { id: 'standard', name: 'Standard Delivery', price: 199, timeline: '6-7 Days', icon: Truck },
+  { id: 'bulky', name: 'Big/Bulky Order', price: 300, timeline: '7-8 Days', icon: Package },
+  { id: 'express', name: 'Express Speed', price: 399, timeline: '2-3 Days', icon: Zap },
+  { id: 'air', name: 'Express By Air', price: 600, timeline: 'Lightning Fast', icon: Plane }
+];
 
 const CartDrawer = () => {
   const { items, removeItem, updateQuantity, isCartOpen, setIsCartOpen, totalPrice } = useCart();
@@ -14,14 +21,14 @@ const CartDrawer = () => {
     phone: '',
     address: ''
   });
+  const [selectedShipping, setSelectedShipping] = useState(SHIPPING_OPTIONS[0]);
 
-  // Calculate final total with potential shipping/tax
-  const shippingCharge = totalPrice > 500 ? 0 : 50;
-  const finalTotal = totalPrice + shippingCharge;
+  // Calculate final total including shipping
+  const finalTotal = totalPrice + selectedShipping.price;
   
   // UPI Deep Link Generation
-  const upiId = "7073691168@ptsbi";
-  const upiName = "Raj Dadhich";
+  const upiId = SITE_CONFIG.upiId || "7073691168@ptsbi";
+  const upiName = SITE_CONFIG.upiName || "Raj Dadhich";
   const upiUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(upiName)}&am=${finalTotal}&cu=INR&tn=Order-TheMemoryKnot`;
 
   // Fix: Robust Scroll Lock
@@ -51,6 +58,16 @@ const CartDrawer = () => {
     setTimeout(() => {
       setIsCartOpen(false);
     }, 2000);
+  };
+
+  const initiatePayment = () => {
+    // Standard deep link method for mobile browsers
+    window.location.href = upiUrl;
+    
+    // Safety delay: Let the browser process the deep link before closing the cart
+    setTimeout(() => {
+      handleFinalCheckout();
+    }, 500);
   };
 
   return (
@@ -189,7 +206,7 @@ const CartDrawer = () => {
                     </div>
                   ) : checkoutStep === 2 ? (
                     /* Step 2: Shipping Info */
-                    <div className="space-y-6">
+                    <div className="space-y-8">
                       <div className="space-y-4">
                         <h3 className="font-heading text-lg font-bold text-foreground border-l-4 border-primary pl-3">Delivery Details</h3>
                         <div className="space-y-4 mt-4">
@@ -229,11 +246,36 @@ const CartDrawer = () => {
                         </div>
                       </div>
 
-                      <div className="flex gap-3 p-4 bg-green-50 rounded-xl border border-green-100">
-                        <Truck size={20} className="text-green-600 shrink-0" />
-                        <div>
-                          <h6 className="text-[11px] font-bold text-green-800 uppercase tracking-wider">Fast Shipping</h6>
-                          <p className="text-[10px] text-green-700/80 font-body">Orders are processed within 24-48 hours with premium courier partners.</p>
+                      {/* 4 Custom Shipping Tiers */}
+                      <div className="space-y-4">
+                        <h3 className="font-heading text-lg font-bold text-foreground border-l-4 border-primary pl-3">Select Delivery Method</h3>
+                        <div className="grid grid-cols-1 gap-3 mt-4">
+                          {SHIPPING_OPTIONS.map((option) => {
+                            const Icon = option.icon;
+                            const isSelected = selectedShipping.id === option.id;
+                            return (
+                              <button
+                                key={option.id}
+                                onClick={() => setSelectedShipping(option)}
+                                className={`flex items-center gap-4 p-4 rounded-xl border transition-all duration-300 text-left ${
+                                  isSelected 
+                                    ? 'bg-primary/5 border-primary shadow-sm' 
+                                    : 'bg-white border-border/60 hover:border-primary/40'
+                                }`}
+                              >
+                                <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${isSelected ? 'bg-primary text-white' : 'bg-secondary/50 text-muted-foreground'}`}>
+                                  <Icon size={20} />
+                                </div>
+                                <div className="flex-1">
+                                  <h4 className={`text-sm font-bold font-heading ${isSelected ? 'text-primary' : 'text-foreground'}`}>{option.name}</h4>
+                                  <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold mt-0.5">{option.timeline}</p>
+                                </div>
+                                <div className="text-right">
+                                  <p className={`font-black ${isSelected ? 'text-primary' : 'text-foreground'}`}>₹{option.price}</p>
+                                </div>
+                              </button>
+                            );
+                          })}
                         </div>
                       </div>
                     </div>
@@ -247,7 +289,10 @@ const CartDrawer = () => {
 
                       {/* Display Total prominently */}
                       <div className="bg-primary/5 p-6 rounded-2xl border-2 border-dashed border-primary/20 flex flex-col items-center gap-4">
-                        <span className="text-xs font-bold text-primary/60 uppercase tracking-widest px-3 py-1 bg-white rounded-full shadow-sm">Total Payable</span>
+                        <div className="flex flex-col items-center gap-1">
+                          <span className="text-[10px] font-bold text-primary/60 uppercase tracking-widest px-3 py-1 bg-white rounded-full shadow-sm">Total Payable</span>
+                          <span className="text-[10px] text-muted-foreground font-body">{selectedShipping.name} included</span>
+                        </div>
                         <span className="text-4xl font-heading font-black text-primary">₹{finalTotal.toLocaleString()}</span>
                       </div>
 
@@ -273,8 +318,7 @@ const CartDrawer = () => {
                                 dragElastic={0.05}
                                 onDragEnd={(_, info) => {
                                   if (info.offset.x > 250) {
-                                    window.open(upiUrl, '_blank');
-                                    handleFinalCheckout();
+                                    initiatePayment();
                                   }
                                 }}
                                 className="absolute left-1.5 top-1.5 h-[52px] w-16 bg-primary rounded-full shadow-lg flex items-center justify-center text-white cursor-grab active:cursor-grabbing z-10"
@@ -286,6 +330,26 @@ const CartDrawer = () => {
                                 <span className="text-sm font-bold text-primary/40 uppercase tracking-widest pl-12 font-body">Swipe to Pay</span>
                               </div>
                             </div>
+                          </div>
+
+                          {/* Fallback for Desktop/Issue cases */}
+                          <div className="flex flex-col items-center gap-3">
+                            <p className="text-[10px] text-muted-foreground font-body">Slider not working? Try this:</p>
+                            <button 
+                              onClick={() => {
+                                navigator.clipboard.writeText(upiId);
+                                alert(`UPI ID Copied: ${upiId}`);
+                              }}
+                              className="text-xs font-bold text-primary border border-primary/20 bg-primary/5 px-4 py-2 rounded-full hover:bg-primary/10 transition-all flex items-center gap-2"
+                            >
+                              <ShieldCheck size={14} /> Copy UPI ID: {upiId}
+                            </button>
+                            <a 
+                              href={upiUrl}
+                              className="text-[10px] text-muted-foreground hover:text-primary transition-colors underline underline-offset-4"
+                            >
+                              Click here if you are on a phone
+                            </a>
                           </div>
 
                           {/* QR Code - Optional Fallback for Desktop */}
@@ -303,22 +367,22 @@ const CartDrawer = () => {
               )}
             </div>
 
-            {/* Footer Summary (Only in Cart Step) */}
-            {items.length > 0 && (
+            {/* Footer Summary (Only in Cart/Shipping Step) */}
+            {items.length > 0 && !isPaid && (
               <div className="p-5 border-t border-border/60 space-y-4 bg-white">
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm text-muted-foreground font-body">
-                    <span>Subtotal</span>
+                    <span>Products Subtotal</span>
                     <span className="font-semibold text-foreground">₹{totalPrice.toLocaleString()}</span>
                   </div>
-                  <div className="flex justify-between text-sm text-muted-foreground font-body">
-                    <span>Shipping</span>
-                    <span className={`font-semibold ${shippingCharge === 0 ? 'text-green-600' : 'text-foreground'}`}>
-                      {shippingCharge === 0 ? 'FREE' : `₹${shippingCharge}`}
-                    </span>
-                  </div>
+                  {checkoutStep >= 2 && (
+                    <div className="flex justify-between text-sm text-muted-foreground font-body">
+                      <span>{selectedShipping.name}</span>
+                      <span className="font-semibold text-foreground">₹{selectedShipping.price}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-lg font-heading font-black pt-2 border-t border-border/40">
-                    <span className="text-foreground">Total</span>
+                    <span className="text-foreground">Total Payable</span>
                     <span className="text-primary">₹{finalTotal.toLocaleString()}</span>
                   </div>
                 </div>
@@ -327,14 +391,14 @@ const CartDrawer = () => {
                   <button
                     onClick={() => setCheckoutStep(3)}
                     disabled={!shippingInfo.name || !shippingInfo.phone || !shippingInfo.address}
-                    className="w-full py-3.5 bg-primary text-white disabled:bg-muted disabled:text-muted-foreground rounded-xl font-bold font-body shadow-soft transition-all active:scale-[0.98]"
+                    className="w-full py-3.5 bg-primary text-white disabled:bg-muted disabled:text-muted-foreground rounded-xl font-bold font-body shadow-soft transition-all active:scale-[0.98] active:shadow-inner"
                   >
-                    Proceed to Payment
+                    Proceed to Secure Payment
                   </button>
                 ) : checkoutStep === 1 ? (
                   <button
                     onClick={() => setCheckoutStep(2)}
-                    className="w-full py-3.5 bg-primary text-white rounded-xl font-bold font-body shadow-soft flex items-center justify-center gap-2 hover:bg-primary/95 transition-all"
+                    className="w-full py-3.5 bg-primary text-white rounded-xl font-bold font-body shadow-soft flex items-center justify-center gap-2 hover:bg-primary/95 transition-all active:scale-[0.98]"
                   >
                     Continue to Delivery <ArrowRight size={18} />
                   </button>
