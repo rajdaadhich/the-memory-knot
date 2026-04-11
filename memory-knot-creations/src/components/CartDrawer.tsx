@@ -28,16 +28,23 @@ const CartDrawer = () => {
   // Calculate final total including shipping
   const finalTotal = totalPrice + selectedShipping.price;
   
+  // Device detection for smart deep linking
+  const isIOS = typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent);
+  
   // UPI Deep Link Generation
   const upiId = SITE_CONFIG.upiId || "7073691168@ptsbi";
   const upiName = SITE_CONFIG.upiName || "Raj Dadhich";
-  // Generic UPI Link
-  const upiUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(upiName)}&am=${finalTotal}&cu=INR&tn=Order-TheMemoryKnot`;
   
-  // App-Specific Deep Links (Best for Mobile)
-  const phonepeUrl = `phonepe://pay?pa=${upiId}&pn=${encodeURIComponent(upiName)}&am=${finalTotal}&cu=INR`;
-  const gpayUrl = `googlepay://pay?pa=${upiId}&pn=${encodeURIComponent(upiName)}&am=${finalTotal}&cu=INR`;
-  const paytmUrl = `paytmmpay://pay?pa=${upiId}&pn=${encodeURIComponent(upiName)}&am=${finalTotal}&cu=INR`;
+  // Common parameters for all apps
+  const upiParams = `pa=${upiId}&pn=${encodeURIComponent(upiName)}&am=${finalTotal}&cu=INR&mode=02&purpose=00&tn=Order-TheMemoryKnot`;
+  
+  // Generic UPI Link
+  const upiUrl = `upi://pay?${upiParams}`;
+  
+  // App-Specific Deep Links (Optimized for Platform)
+  const phonepeUrl = `phonepe://pay?${upiParams}`;
+  const gpayUrl = isIOS ? `googlepay://pay?${upiParams}` : `tez://upi/pay?${upiParams}`;
+  const paytmUrl = isIOS ? `paytm://pay?${upiParams}` : `paytmmpay://pay?${upiParams}`;
 
   // Fix: Robust Scroll Lock
   useEffect(() => {
@@ -424,7 +431,7 @@ const CartDrawer = () => {
                                     dragElastic={0.05}
                                     onDragEnd={(_, info) => {
                                       if (info.offset.x > 100) {
-                                        initiatePayment();
+                                        initiatePayment(paytmUrl);
                                       }
                                     }}
                                     className="absolute left-1.5 top-1.5 h-[52px] w-16 bg-primary rounded-full shadow-lg flex items-center justify-center text-white cursor-grab active:cursor-grabbing z-10"
@@ -433,7 +440,7 @@ const CartDrawer = () => {
                                     <ArrowRight size={24} className="animate-pulse-gentle" />
                                   </motion.div>
                                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                    <span className="text-sm font-bold text-primary/40 uppercase tracking-widest pl-12 font-body">Swipe for UPI</span>
+                                    <span className="text-sm font-bold text-primary/40 uppercase tracking-widest pl-12 font-body">Swipe for Paytm</span>
                                   </div>
                                 </div>
                               </div>
