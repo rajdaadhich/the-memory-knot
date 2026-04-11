@@ -1,9 +1,17 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ShoppingBag, Plus, Minus, Trash2, ArrowRight, Heart, ShieldCheck, Truck, RotateCcw, Plane, Package, Zap, CheckCircle2, Smartphone, ExternalLink, Loader2 } from 'lucide-react';
+import { X, ShoppingBag, Plus, Minus, Trash2, ArrowLeft, ArrowRight, Heart, ShieldCheck, Truck, RotateCcw, Plane, Package, Zap, CheckCircle2, Smartphone, ExternalLink, Loader2, Scan as LucideScanLine } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
 import { SITE_CONFIG, API_BASE_URL } from '@/config';
 import { QRCodeSVG } from 'qrcode.react';
+import { Check } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const SHIPPING_OPTIONS = [
   { id: 'standard', name: 'Standard Delivery', price: 199, timeline: '6-7 Days', icon: Truck },
@@ -18,11 +26,16 @@ const CartDrawer = () => {
   const [isPaid, setIsPaid] = useState(false);
   const [isWaitingForConfirmation, setIsWaitingForConfirmation] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedApp, setSelectedApp] = useState<'paytm' | 'phonepe' | 'gpay'>('paytm');
+  const [isQRMode, setIsQRMode] = useState(false);
   const [shippingInfo, setShippingInfo] = useState({
     name: '',
     phone: '',
     address: ''
   });
+  
+  // Set default shipping to Standard Delivery (SHIPPING_OPTIONS[0]) 
+  // ensuring the select has a solid default value.
   const [selectedShipping, setSelectedShipping] = useState(SHIPPING_OPTIONS[0]);
 
   // Calculate final total including shipping
@@ -41,10 +54,18 @@ const CartDrawer = () => {
   // Generic UPI Link
   const upiUrl = `upi://pay?${upiParams}`;
   
-  // App-Specific Deep Links (Optimized for Platform)
+  // App-Specific Deep Links (Revised for iPhone Compatibility)
   const phonepeUrl = `phonepe://pay?${upiParams}`;
-  const gpayUrl = isIOS ? `googlepay://pay?${upiParams}` : `tez://upi/pay?${upiParams}`;
-  const paytmUrl = isIOS ? `paytm://pay?${upiParams}` : `paytmmpay://pay?${upiParams}`;
+  // Use 'gpay://' or 'tez://' for Indian GPay on iOS
+  const gpayUrl = isIOS ? `gpay://upi/pay?${upiParams}` : `tez://upi/pay?${upiParams}`;
+  // Use 'paytmmp://' for Paytm on iOS (more reliable than 'paytm://')
+  const paytmUrl = isIOS ? `paytmmp://pay?${upiParams}` : `paytmmpay://pay?${upiParams}`;
+
+  const appLinks = {
+    paytm: paytmUrl,
+    phonepe: phonepeUrl,
+    gpay: gpayUrl
+  };
 
   // Fix: Robust Scroll Lock
   useEffect(() => {
@@ -106,8 +127,13 @@ const CartDrawer = () => {
   };
 
   const initiatePayment = (customUrl?: string) => {
-    // Open the UPI link
-    window.open(customUrl || upiUrl, '_self');
+    // Determine the target URL
+    const targetUrl = customUrl || appLinks[selectedApp];
+    
+    // Open the UPI link using direct assignment for better iOS reliability
+    if (typeof window !== 'undefined') {
+      window.location.href = targetUrl;
+    }
     
     // Move to waiting view instead of finalizing
     setIsWaitingForConfirmation(true);
@@ -145,11 +171,23 @@ const CartDrawer = () => {
             {/* Header */}
             <div className="flex items-center justify-between p-5 border-b border-border/60 bg-[#F8F3EE]">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center text-primary">
-                  <ShoppingBag size={20} />
-                </div>
+                {checkoutStep > 1 ? (
+                  <button 
+                    onClick={() => setCheckoutStep(checkoutStep - 1)}
+                    className="w-10 h-10 -ml-2 flex items-center justify-center hover:bg-black/5 rounded-full transition-colors text-foreground"
+                    aria-label="Go back"
+                  >
+                    <ArrowLeft size={20} />
+                  </button>
+                ) : (
+                  <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center text-primary shrink-0">
+                    <ShoppingBag size={20} />
+                  </div>
+                )}
                 <div>
-                  <h2 className="font-heading text-lg font-bold text-foreground leading-tight">Your Gift Box</h2>
+                  <h2 className="font-heading text-lg font-bold text-foreground leading-tight">
+                    {checkoutStep === 1 ? 'Your Gift Box' : checkoutStep === 2 ? 'Delivery Address' : 'Secure Payment'}
+                  </h2>
                   <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-body font-bold">
                     {items.length} {items.length === 1 ? 'item' : 'items'} • step {checkoutStep} of 3
                   </p>
@@ -194,65 +232,108 @@ const CartDrawer = () => {
                   {checkoutStep === 1 ? (
                     /* Step 1: Cart Items */
                     <div className="space-y-4">
-                      {items.map((item) => (
-                        <motion.div
-                          layout
-                          key={item.id}
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="flex gap-4 p-3 rounded-xl bg-secondary/20 border border-border/40 group relative overflow-hidden"
-                        >
-                          <div className="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 border border-border/60">
-                            <img src={item.image} alt={item.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                          </div>
-                          <div className="flex-1 min-w-0 flex flex-col justify-between">
-                            <div>
-                              <h4 className="font-heading font-bold text-foreground text-sm truncate pr-6">{item.name}</h4>
-                              <p className="text-primary font-bold mt-0.5">₹{item.price.toLocaleString()}</p>
+                      <div className="space-y-3">
+                        {items.map((item) => (
+                          <motion.div
+                            layout
+                            key={item.id}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="flex gap-4 p-3 rounded-xl bg-secondary/20 border border-border/40 group relative overflow-hidden"
+                          >
+                            <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 border border-border/60">
+                              <img src={item.image} alt={item.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                             </div>
-                            <div className="flex items-center justify-between mt-2">
-                              <div className="flex items-center bg-white rounded-full border border-border/80 shadow-sm overflow-hidden p-0.5">
-                                <button
-                                  onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                                  className="p-1 px-2 hover:bg-secondary/50 text-muted-foreground transition-colors"
-                                >
-                                  <Minus size={12} />
-                                </button>
-                                <span className="w-8 text-center text-xs font-bold font-body">{item.quantity}</span>
-                                <button
-                                  onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                                  className="p-1 px-2 hover:bg-secondary/50 text-muted-foreground transition-colors"
-                                >
-                                  <Plus size={12} />
-                                </button>
+                            <div className="flex-1 min-w-0 flex flex-col justify-between">
+                              <div>
+                                <h4 className="font-heading font-bold text-foreground text-[13px] truncate pr-6">{item.name}</h4>
+                                <p className="text-primary font-bold text-xs mt-0.5">₹{item.price.toLocaleString()}</p>
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center bg-white rounded-full border border-border/80 shadow-sm overflow-hidden p-0.5 scale-90 -ml-1">
+                                  <button
+                                    onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                                    className="p-1 px-1.5 hover:bg-secondary/50 text-muted-foreground transition-colors"
+                                  >
+                                    <Minus size={10} />
+                                  </button>
+                                  <span className="w-6 text-center text-xs font-bold font-body">{item.quantity}</span>
+                                  <button
+                                    onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                                    className="p-1 px-1.5 hover:bg-secondary/50 text-muted-foreground transition-colors"
+                                  >
+                                    <Plus size={10} />
+                                  </button>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                          <button
-                            onClick={() => removeItem(item.id)}
-                            className="absolute top-2 right-2 p-1.5 text-muted-foreground/40 hover:text-red-500 transition-colors"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </motion.div>
-                      ))}
+                            <button
+                              onClick={() => removeItem(item.id)}
+                              className="absolute top-2 right-2 p-1 text-muted-foreground/30 hover:text-red-500 transition-colors"
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          </motion.div>
+                        ))}
+                      </div>
 
-                      {/* Upsell/Info area */}
-                      <div className="mt-8 p-4 bg-primary/5 rounded-xl border border-primary/10">
-                        <h5 className="font-heading font-bold text-xs text-primary uppercase tracking-wider flex items-center gap-2 mb-2">
-                          <RotateCcw size={12} /> Easy Returns & Exchange
-                        </h5>
-                        <p className="text-[11px] text-muted-foreground font-body leading-relaxed">
-                          We take pride in our crafts. If your gift arrives damaged, we'll replace it instantly within 48 hours.
-                        </p>
+                      {/* Step 1 Delivery Type Choice */}
+                      <div className="space-y-4 pt-4 border-t border-border/40">
+                        <div className="flex items-center justify-between">
+                          <h5 className="font-heading font-bold text-sm text-foreground">Delivery Speed</h5>
+                          <div className="flex items-center gap-1 text-[10px] text-primary font-bold uppercase tracking-widest bg-primary/5 px-2 py-1 rounded-full">
+                            <Truck size={12} /> Fast & Safe
+                          </div>
+                        </div>
+                        <div className="relative">
+                          <Select 
+                            value={selectedShipping.id}
+                            onValueChange={(value) => {
+                              const option = SHIPPING_OPTIONS.find(opt => opt.id === value);
+                              if (option) setSelectedShipping(option);
+                            }}
+                          >
+                            <SelectTrigger className="w-full bg-white border-border/60 hover:border-primary/40 focus:ring-primary/10 rounded-xl px-4 py-[26px] text-sm font-bold font-heading shadow-sm transition-all focus:ring-2">
+                              <SelectValue placeholder="Select Delivery Method" />
+                            </SelectTrigger>
+                            <SelectContent className="z-[10000] bg-white/95 backdrop-blur-md rounded-xl shadow-xl border-border/40">
+                              {SHIPPING_OPTIONS.map((option) => (
+                                <SelectItem key={option.id} value={option.id} className="cursor-pointer py-3 rounded-lg focus:bg-primary/5 focus:text-primary transition-colors">
+                                  {option.name} (₹{option.price}) - {option.timeline}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        {/* Selected Option Explanation Details */}
+                        <div className="flex items-center gap-3 p-3 bg-secondary/30 rounded-lg border border-border/40">
+                           <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                              {selectedShipping.id === 'standard' && <Truck size={16} />}
+                              {selectedShipping.id === 'bulky' && <Package size={16} />}
+                              {selectedShipping.id === 'express' && <Zap size={16} />}
+                              {selectedShipping.id === 'air' && <Plane size={16} />}
+                           </div>
+                           <div className="flex-1">
+                             <p className="text-xs font-bold text-foreground">{selectedShipping.name}</p>
+                             <p className="text-[10px] text-muted-foreground leading-tight">{
+                                selectedShipping.id === 'standard' ? 'Standard delivery timeline via surface transport.' :
+                                selectedShipping.id === 'bulky' ? 'Specialized handling for large/heavy items.' :
+                                selectedShipping.id === 'express' ? 'Priority dispatch and delivery.' :
+                                'Premium expedited delivery via air cargo.'
+                             }</p>
+                           </div>
+                        </div>
                       </div>
                     </div>
                   ) : checkoutStep === 2 ? (
-                    /* Step 2: Shipping Info */
+                    /* Step 2: Shipping Info (Strictly Address) */
                     <div className="space-y-8">
                       <div className="space-y-4">
-                        <h3 className="font-heading text-lg font-bold text-foreground border-l-4 border-primary pl-3">Delivery Details</h3>
-                        <div className="space-y-4 mt-4">
+                        <div className="flex items-center gap-3 border-l-4 border-primary pl-3">
+                          <h3 className="font-heading text-lg font-bold text-foreground">Where should we deliver?</h3>
+                        </div>
+                        <div className="space-y-4 mt-4 bg-secondary/10 p-4 rounded-2xl border border-border/40">
                           <div className="space-y-1.5">
                             <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground ml-1">Full Name</label>
                             <input
@@ -260,7 +341,7 @@ const CartDrawer = () => {
                               name="name"
                               value={shippingInfo.name}
                               onChange={handleInputChange}
-                              placeholder="Who is receiving the love?"
+                              placeholder="Receiver's name"
                               className="w-full px-4 py-3 rounded-xl border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm font-body shadow-sm"
                             />
                           </div>
@@ -276,49 +357,16 @@ const CartDrawer = () => {
                             />
                           </div>
                           <div className="space-y-1.5">
-                            <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground ml-1">Full Shipping Address</label>
+                            <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground ml-1">Complete Address</label>
                             <textarea
                               name="address"
                               value={shippingInfo.address}
                               onChange={handleInputChange}
                               rows={3}
-                              placeholder="Where should we deliver?"
+                              placeholder="House no, Area, City, Pin"
                               className="w-full px-4 py-3 rounded-xl border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm font-body shadow-sm resize-none"
                             />
                           </div>
-                        </div>
-                      </div>
-
-                      {/* 4 Custom Shipping Tiers */}
-                      <div className="space-y-4">
-                        <h3 className="font-heading text-lg font-bold text-foreground border-l-4 border-primary pl-3">Select Delivery Method</h3>
-                        <div className="grid grid-cols-1 gap-3 mt-4">
-                          {SHIPPING_OPTIONS.map((option) => {
-                            const Icon = option.icon;
-                            const isSelected = selectedShipping.id === option.id;
-                            return (
-                              <button
-                                key={option.id}
-                                onClick={() => setSelectedShipping(option)}
-                                className={`flex items-center gap-4 p-4 rounded-xl border transition-all duration-300 text-left ${
-                                  isSelected 
-                                    ? 'bg-primary/5 border-primary shadow-sm' 
-                                    : 'bg-white border-border/60 hover:border-primary/40'
-                                }`}
-                              >
-                                <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${isSelected ? 'bg-primary text-white' : 'bg-secondary/50 text-muted-foreground'}`}>
-                                  <Icon size={20} />
-                                </div>
-                                <div className="flex-1">
-                                  <h4 className={`text-sm font-bold font-heading ${isSelected ? 'text-primary' : 'text-foreground'}`}>{option.name}</h4>
-                                  <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold mt-0.5">{option.timeline}</p>
-                                </div>
-                                <div className="text-right">
-                                  <p className={`font-black ${isSelected ? 'text-primary' : 'text-foreground'}`}>₹{option.price}</p>
-                                </div>
-                              </button>
-                            );
-                          })}
                         </div>
                       </div>
                     </div>
@@ -330,7 +378,6 @@ const CartDrawer = () => {
                         <p className="text-sm text-muted-foreground font-body">Pay safely using any UPI app</p>
                       </div>
 
-                      {/* Display Total prominently */}
                       <div className="bg-primary/5 p-6 rounded-2xl border-2 border-dashed border-primary/20 flex flex-col items-center gap-4">
                         <div className="flex flex-col items-center gap-1">
                           <span className="text-[10px] font-bold text-primary/60 uppercase tracking-widest px-3 py-1 bg-white rounded-full shadow-sm">Total Payable</span>
@@ -352,20 +399,20 @@ const CartDrawer = () => {
                       ) : (
                         <div className="space-y-6">
                           {isWaitingForConfirmation ? (
-                            <div className="space-y-6">
-                              <motion.div 
-                                initial={{ opacity: 0, scale: 0.9 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                className="bg-primary/5 p-6 rounded-2xl border-2 border-primary/20 text-center space-y-4"
-                              >
+                            <motion.div 
+                              initial={{ opacity: 0, y: 20 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              className="space-y-6"
+                            >
+                              <div className="bg-primary/5 p-6 rounded-2xl border-2 border-primary/20 text-center space-y-4">
                                 <div className="w-16 h-16 bg-primary/10 text-primary rounded-full flex items-center justify-center mx-auto">
                                   <Smartphone size={32} className="animate-bounce" />
                                 </div>
                                 <div className="space-y-1">
                                   <h4 className="font-heading text-lg font-bold text-foreground">Waiting for Payment</h4>
-                                  <p className="text-xs text-muted-foreground font-body">Please finish the payment in your UPI app and then return here.</p>
+                                  <p className="text-xs text-muted-foreground font-body text-balance">Please finish the payment in your UPI app and then return here to confirm.</p>
                                 </div>
-                              </motion.div>
+                              </div>
 
                               <button
                                 onClick={handleFinalCheckout}
@@ -385,88 +432,119 @@ const CartDrawer = () => {
 
                               <button
                                 onClick={() => setIsWaitingForConfirmation(false)}
-                                className="w-full py-2 text-xs text-muted-foreground font-bold uppercase tracking-widest hover:text-primary transition-colors"
+                                className="w-full py-2 text-[10px] text-muted-foreground font-bold uppercase tracking-widest hover:text-primary transition-colors text-center"
                               >
                                 Try another method / Back
                               </button>
-                            </div>
+                            </motion.div>
                           ) : (
-                            <div className="space-y-8">
-                              {/* Direct App Buttons */}
-                              <div className="space-y-4">
-                                <p className="text-[10px] font-bold text-center text-muted-foreground uppercase tracking-widest">Open via App</p>
-                                <div className="grid grid-cols-3 gap-3">
-                                  {[
-                                    { name: 'GPay', url: gpayUrl, color: 'hover:bg-blue-50 hover:border-blue-200' },
-                                    { name: 'PhonePe', url: phonepeUrl, color: 'hover:bg-purple-50 hover:border-purple-200' },
-                                    { name: 'Paytm', url: paytmUrl, color: 'hover:bg-cyan-50 hover:border-cyan-200' },
-                                  ].map((app) => (
-                                    <button
-                                      key={app.name}
-                                      onClick={() => initiatePayment(app.url)}
-                                      className={`flex flex-col items-center gap-2 p-3 rounded-xl border border-border/60 bg-white transition-all duration-300 ${app.color} group`}
-                                    >
-                                      <div className="w-10 h-10 rounded-full bg-secondary/30 flex items-center justify-center group-hover:scale-110 transition-transform">
-                                        <ExternalLink size={18} className="text-muted-foreground group-hover:text-primary" />
+                            <AnimatePresence mode="wait">
+                              {!isQRMode ? (
+                                <motion.div
+                                  key="slider-view"
+                                  initial={{ opacity: 0, scale: 0.95 }}
+                                  animate={{ opacity: 1, scale: 1 }}
+                                  exit={{ opacity: 0, scale: 0.95 }}
+                                  transition={{ duration: 0.2 }}
+                                  className="space-y-6"
+                                >
+                                  <div className="flex items-center gap-2">
+                                    {/* Swipe Slider (Moved to Left) */}
+                                    <div className="flex-1 relative h-16 bg-secondary/30 rounded-full border border-border/60 overflow-hidden p-1.5 shadow-inner">
+                                      <motion.div
+                                        drag="x"
+                                        dragConstraints={{ left: 0, right: 140 }}
+                                        dragElastic={0.05}
+                                        onDragEnd={(_, info) => {
+                                          if (info.offset.x > 70) {
+                                            initiatePayment();
+                                          }
+                                        }}
+                                        className="absolute left-1.5 top-1.5 h-[52px] w-16 bg-primary rounded-full shadow-lg flex items-center justify-center text-white cursor-grab active:cursor-grabbing z-10"
+                                        whileTap={{ scale: 0.95 }}
+                                      >
+                                        <ArrowRight size={22} />
+                                      </motion.div>
+                                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                        <span className="text-[9px] font-bold text-primary/40 uppercase tracking-[0.2em] pl-10 font-body">Swipe to Pay</span>
                                       </div>
-                                      <span className="text-[10px] font-bold font-heading uppercase">{app.name}</span>
-                                    </button>
-                                  ))}
-                                </div>
-                                <button 
-                                  onClick={() => initiatePayment()}
-                                  className="w-full text-[10px] text-center text-primary font-bold hover:underline"
-                                >
-                                  Or use any other UPI app
-                                </button>
-                              </div>
+                                    </div>
 
-                              {/* Payment Slider - Visible on all devices */}
-                              <div className="space-y-4 pt-2">
-                                <p className="text-[10px] font-bold text-center text-muted-foreground uppercase tracking-widest">Or Swipe to initiate</p>
-                                <div className="relative w-full h-16 bg-secondary/30 rounded-full border border-border/60 overflow-hidden p-1.5 shadow-inner">
-                                  <motion.div
-                                    drag="x"
-                                    dragConstraints={{ left: 0, right: 300 }}
-                                    dragElastic={0.05}
-                                    onDragEnd={(_, info) => {
-                                      if (info.offset.x > 100) {
-                                        initiatePayment(paytmUrl);
-                                      }
-                                    }}
-                                    className="absolute left-1.5 top-1.5 h-[52px] w-16 bg-primary rounded-full shadow-lg flex items-center justify-center text-white cursor-grab active:cursor-grabbing z-10"
-                                    whileTap={{ scale: 0.95 }}
-                                  >
-                                    <ArrowRight size={24} className="animate-pulse-gentle" />
-                                  </motion.div>
-                                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                    <span className="text-sm font-bold text-primary/40 uppercase tracking-widest pl-12 font-body">Swipe for Paytm</span>
+                                    {/* Beautiful App Selector Dropdown */}
+                                    <Select value={selectedApp} onValueChange={(value: any) => setSelectedApp(value)}>
+                                      <SelectTrigger className="h-16 w-32 bg-white border-border/60 rounded-2xl flex items-center justify-center shadow-sm hover:border-primary/40 focus:ring-primary/20 transition-all group overflow-hidden relative px-2 [&>svg:last-child]:hidden outline-none">
+                                        <div className="absolute inset-x-0 bottom-0 h-0.5 bg-primary transform scale-x-0 group-hover:scale-x-100 transition-transform origin-center" />
+                                        <div className="flex flex-col items-center gap-0.5 justify-center w-full relative">
+                                          <div className="flex items-center justify-center h-7 w-full relative">
+                                            {selectedApp === 'paytm' && <img src="https://img.icons8.com/color/48/paytm.png" className="h-6 w-auto" alt="Paytm" />}
+                                            {selectedApp === 'phonepe' && <img src="https://www.vectorlogo.zone/logos/phonepe/phonepe-icon.svg" className="h-6 w-auto" alt="PhonePe" />}
+                                            {selectedApp === 'gpay' && <img src="https://img.icons8.com/color/48/google-pay.png" className="h-6 w-auto" alt="GPay" />}
+
+                                            <div className="absolute top-1/2 -translate-y-1/2 -right-1 text-muted-foreground/40 group-hover:text-primary transition-colors">
+                                              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                                            </div>
+                                          </div>
+                                          <span className="text-[10px] font-black uppercase tracking-tighter text-muted-foreground group-hover:text-primary transition-colors">
+                                            {selectedApp === 'paytm' ? 'Paytm' : selectedApp === 'phonepe' ? 'PhonePe' : 'Google Pay'}
+                                          </span>
+                                        </div>
+                                      </SelectTrigger>
+                                      
+                                      <SelectContent className="z-[10000] w-[140px] p-2 bg-white/95 backdrop-blur-md rounded-2xl shadow-xl border-border/40" side="top" align="center" sideOffset={10}>
+                                        <SelectItem value="paytm" className="cursor-pointer py-3 rounded-xl focus:bg-primary/5 focus:text-primary transition-colors">
+                                          <div className="flex items-center gap-3">
+                                            <img src="https://img.icons8.com/color/48/paytm.png" className="h-5 w-auto" alt="Paytm" />
+                                            <span className="text-[11px] font-bold font-heading">Paytm</span>
+                                          </div>
+                                        </SelectItem>
+                                        <SelectItem value="phonepe" className="cursor-pointer py-3 rounded-xl focus:bg-primary/5 focus:text-primary transition-colors">
+                                          <div className="flex items-center gap-3">
+                                            <img src="https://www.vectorlogo.zone/logos/phonepe/phonepe-icon.svg" className="h-5 w-auto" alt="PhonePe" />
+                                            <span className="text-[11px] font-bold font-heading">PhonePe</span>
+                                          </div>
+                                        </SelectItem>
+                                        <SelectItem value="gpay" className="cursor-pointer py-3 rounded-xl focus:bg-primary/5 focus:text-primary transition-colors">
+                                          <div className="flex items-center gap-3">
+                                            <img src="https://img.icons8.com/color/48/google-pay.png" className="h-5 w-auto" alt="GPay" />
+                                            <span className="text-[11px] font-bold font-heading">Google Pay</span>
+                                          </div>
+                                        </SelectItem>
+                                      </SelectContent>
+                                    </Select>
                                   </div>
-                                </div>
-                              </div>
 
-                              {/* Fallback for Desktop/Issue cases */}
-                              <div className="flex flex-col items-center gap-3 border-t border-border/40 pt-6">
-                                <p className="text-[10px] text-muted-foreground font-body">Issues with apps? Use this ID:</p>
-                                <button 
-                                  onClick={() => {
-                                    navigator.clipboard.writeText(upiId);
-                                    alert(`UPI ID Copied: ${upiId}`);
-                                  }}
-                                  className="text-xs font-bold text-primary border border-primary/20 bg-primary/5 px-4 py-2 rounded-full hover:bg-primary/10 transition-all flex items-center gap-2"
+                                  <button
+                                    onClick={() => setIsQRMode(true)}
+                                    className="w-full py-2 flex items-center justify-center gap-2 text-[10px] text-muted-foreground font-bold hover:text-primary transition-colors uppercase tracking-widest"
+                                  >
+                                    <LucideScanLine size={14} /> Pay using the QR code
+                                  </button>
+                                </motion.div>
+                              ) : (
+                                <motion.div
+                                  key="qr-view"
+                                  initial={{ opacity: 0, scale: 0.95 }}
+                                  animate={{ opacity: 1, scale: 1 }}
+                                  exit={{ opacity: 0, scale: 0.95 }}
+                                  transition={{ duration: 0.2 }}
+                                  className="flex flex-col items-center justify-center h-full max-h-[300px]"
                                 >
-                                  <ShieldCheck size={14} /> Copy UPI ID: {upiId}
-                                </button>
-                              </div>
-
-                              {/* QR Code - Optional Fallback for Desktop */}
-                              <div className="hidden md:flex flex-col items-center gap-4 py-4 border-t border-border/40 mt-4">
-                                <div className="p-3 bg-white rounded-xl shadow-sm border border-border/40">
-                                  <QRCodeSVG value={upiUrl} size={120} />
-                                </div>
-                                <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Or Scan to Pay</p>
-                              </div>
-                            </div>
+                                  <div className="p-3 bg-white rounded-[2rem] shadow-xl border border-border/40 relative group overflow-hidden mb-4">
+                                    <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                                    <QRCodeSVG value={upiUrl} size={160} />
+                                  </div>
+                                  <div className="text-center space-y-1 mb-4">
+                                    <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Scan with any UPI app</p>
+                                  </div>
+                                  <button
+                                    onClick={() => setIsQRMode(false)}
+                                    className="px-6 py-2 bg-secondary/50 hover:bg-secondary rounded-full flex items-center gap-2 text-[10px] font-bold text-foreground transition-colors uppercase tracking-widest shrink-0"
+                                  >
+                                    <ArrowLeft size={14} /> Back
+                                  </button>
+                                </motion.div>
+                              )}
+                           </AnimatePresence>
                           )}
                         </div>
                       )}
@@ -484,12 +562,10 @@ const CartDrawer = () => {
                     <span>Products Subtotal</span>
                     <span className="font-semibold text-foreground">₹{totalPrice.toLocaleString()}</span>
                   </div>
-                  {checkoutStep >= 2 && (
-                    <div className="flex justify-between text-sm text-muted-foreground font-body">
-                      <span>{selectedShipping.name}</span>
-                      <span className="font-semibold text-foreground">₹{selectedShipping.price}</span>
-                    </div>
-                  )}
+                  <div className="flex justify-between text-sm text-muted-foreground font-body">
+                    <span>Delivery ({selectedShipping.name})</span>
+                    <span className="font-semibold text-foreground border border-primary/20 bg-primary/5 px-2 rounded-md">+ ₹{selectedShipping.price}</span>
+                  </div>
                   <div className="flex justify-between text-lg font-heading font-black pt-2 border-t border-border/40">
                     <span className="text-foreground">Total Payable</span>
                     <span className="text-primary">₹{finalTotal.toLocaleString()}</span>
