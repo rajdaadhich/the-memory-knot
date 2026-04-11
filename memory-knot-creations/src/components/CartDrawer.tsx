@@ -12,6 +12,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import paytmLogo from '@/assets/paytm.svg';
+import phonepeLogo from '@/assets/phonepe.svg';
+import gpayLogo from '@/assets/gpay.svg';
 
 const SHIPPING_OPTIONS = [
   { id: 'standard', name: 'Standard Delivery', price: 199, timeline: '6-7 Days', icon: Truck },
@@ -30,6 +33,7 @@ const CartDrawer = () => {
   const [isQRMode, setIsQRMode] = useState(false);
   const [shippingInfo, setShippingInfo] = useState({
     name: '',
+    email: '',
     phone: '',
     address: ''
   });
@@ -98,6 +102,7 @@ const CartDrawer = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           customerName: shippingInfo.name,
+          customerEmail: shippingInfo.email,
           customerPhone: shippingInfo.phone,
           address: shippingInfo.address,
           totalAmount: finalTotal,
@@ -113,11 +118,6 @@ const CartDrawer = () => {
       if (!response.ok) throw new Error("Failed to place order");
 
       setIsPaid(true);
-      clearCart();
-      
-      setTimeout(() => {
-        setIsCartOpen(false);
-      }, 4000);
     } catch (error) {
       console.error("Checkout Error:", error);
       alert("Failed to confirm order. Please try again.");
@@ -346,6 +346,17 @@ const CartDrawer = () => {
                             />
                           </div>
                           <div className="space-y-1.5">
+                            <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground ml-1">Email Address</label>
+                            <input
+                              type="email"
+                              name="email"
+                              value={shippingInfo.email}
+                              onChange={handleInputChange}
+                              placeholder="For order updates"
+                              className="w-full px-4 py-3 rounded-xl border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm font-body shadow-sm"
+                            />
+                          </div>
+                          <div className="space-y-1.5">
                             <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground ml-1">WhatsApp No.</label>
                             <input
                               type="tel"
@@ -387,14 +398,28 @@ const CartDrawer = () => {
                       </div>
 
                       {isPaid ? (
-                        <div className="py-10 text-center space-y-4">
-                          <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto shadow-sm">
+                        <div className="py-10 text-center space-y-5">
+                          <div className="w-20 h-20 bg-primary/10 text-primary rounded-full flex items-center justify-center mx-auto shadow-sm">
                             <ShieldCheck size={40} />
                           </div>
-                          <div>
-                            <h4 className="font-heading text-xl font-bold text-foreground">Order Received!</h4>
-                            <p className="text-sm text-muted-foreground mt-1 px-6">Thank you for your trust. We're starting to prepare your handcrafted gift.</p>
+                          <div className="space-y-3">
+                            <h4 className="font-heading text-2xl font-black text-foreground">Thank You!</h4>
+                            <div className="text-sm text-muted-foreground px-2 space-y-3 font-body">
+                              <p>Thank you for ordering with <strong>The Memory Knot</strong>.</p>
+                              <p className="bg-secondary/30 p-3 rounded-lg border border-primary/10 text-xs text-balance text-foreground/80 leading-relaxed">
+                                Our team will soon verify your payment. Once confirmed, we will share all the updates and formally confirm your order details via Email and WhatsApp!
+                              </p>
+                            </div>
                           </div>
+                          <button
+                            onClick={() => {
+                              setIsCartOpen(false);
+                              setTimeout(() => clearCart(), 300);
+                            }}
+                            className="mt-6 w-full py-3.5 bg-primary/10 text-primary rounded-xl font-bold font-body hover:bg-primary/20 transition-all active:scale-[0.98]"
+                          >
+                            Close this window
+                          </button>
                         </div>
                       ) : (
                         <div className="space-y-6">
@@ -474,39 +499,33 @@ const CartDrawer = () => {
                                     <Select value={selectedApp} onValueChange={(value: any) => setSelectedApp(value)}>
                                       <SelectTrigger className="h-16 w-32 bg-white border-border/60 rounded-2xl flex items-center justify-center shadow-sm hover:border-primary/40 focus:ring-primary/20 transition-all group overflow-hidden relative px-2 [&>svg:last-child]:hidden outline-none">
                                         <div className="absolute inset-x-0 bottom-0 h-0.5 bg-primary transform scale-x-0 group-hover:scale-x-100 transition-transform origin-center" />
-                                        <div className="flex flex-col items-center gap-0.5 justify-center w-full relative">
+                                        <div className="flex items-center justify-center w-full relative">
                                           <div className="flex items-center justify-center h-7 w-full relative">
-                                            {selectedApp === 'paytm' && <img src="https://img.icons8.com/color/48/paytm.png" className="h-6 w-auto" alt="Paytm" />}
-                                            {selectedApp === 'phonepe' && <img src="https://www.vectorlogo.zone/logos/phonepe/phonepe-icon.svg" className="h-6 w-auto" alt="PhonePe" />}
-                                            {selectedApp === 'gpay' && <img src="https://img.icons8.com/color/48/google-pay.png" className="h-6 w-auto" alt="GPay" />}
+                                            {selectedApp === 'paytm' && <div className="w-[64px] h-[14px] flex items-center justify-center"><img src={paytmLogo} className="max-h-full max-w-full object-contain" alt="Paytm" /></div>}
+                                            {selectedApp === 'phonepe' && <div className="w-[64px] h-[22px] flex items-center justify-center"><img src={phonepeLogo} className="max-h-full max-w-full object-contain" alt="PhonePe" /></div>}
+                                            {selectedApp === 'gpay' && <div className="w-[64px] h-[20px] flex items-center justify-center"><img src={gpayLogo} className="max-h-full max-w-full object-contain" alt="GPay" /></div>}
 
                                             <div className="absolute top-1/2 -translate-y-1/2 -right-1 text-muted-foreground/40 group-hover:text-primary transition-colors">
                                               <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
                                             </div>
                                           </div>
-                                          <span className="text-[10px] font-black uppercase tracking-tighter text-muted-foreground group-hover:text-primary transition-colors">
-                                            {selectedApp === 'paytm' ? 'Paytm' : selectedApp === 'phonepe' ? 'PhonePe' : 'Google Pay'}
-                                          </span>
                                         </div>
                                       </SelectTrigger>
                                       
                                       <SelectContent className="z-[10000] w-[140px] p-2 bg-white/95 backdrop-blur-md rounded-2xl shadow-xl border-border/40" side="top" align="center" sideOffset={10}>
-                                        <SelectItem value="paytm" className="cursor-pointer py-3 rounded-xl focus:bg-primary/5 focus:text-primary transition-colors">
-                                          <div className="flex items-center gap-3">
-                                            <img src="https://img.icons8.com/color/48/paytm.png" className="h-5 w-auto" alt="Paytm" />
-                                            <span className="text-[11px] font-bold font-heading">Paytm</span>
+                                        <SelectItem value="paytm" className="cursor-pointer py-3.5 rounded-xl focus:bg-primary/5 focus:text-primary transition-colors [&>span]:w-full">
+                                          <div className="w-full h-8 flex items-center justify-center">
+                                            <img src={paytmLogo} className="h-[14px] w-auto max-w-[100px] object-contain" alt="Paytm" />
                                           </div>
                                         </SelectItem>
-                                        <SelectItem value="phonepe" className="cursor-pointer py-3 rounded-xl focus:bg-primary/5 focus:text-primary transition-colors">
-                                          <div className="flex items-center gap-3">
-                                            <img src="https://www.vectorlogo.zone/logos/phonepe/phonepe-icon.svg" className="h-5 w-auto" alt="PhonePe" />
-                                            <span className="text-[11px] font-bold font-heading">PhonePe</span>
+                                        <SelectItem value="phonepe" className="cursor-pointer py-3.5 rounded-xl focus:bg-primary/5 focus:text-primary transition-colors [&>span]:w-full">
+                                          <div className="w-full h-8 flex items-center justify-center">
+                                            <img src={phonepeLogo} className="h-[22px] w-auto max-w-[100px] object-contain" alt="PhonePe" />
                                           </div>
                                         </SelectItem>
-                                        <SelectItem value="gpay" className="cursor-pointer py-3 rounded-xl focus:bg-primary/5 focus:text-primary transition-colors">
-                                          <div className="flex items-center gap-3">
-                                            <img src="https://img.icons8.com/color/48/google-pay.png" className="h-5 w-auto" alt="GPay" />
-                                            <span className="text-[11px] font-bold font-heading">Google Pay</span>
+                                        <SelectItem value="gpay" className="cursor-pointer py-3.5 rounded-xl focus:bg-primary/5 focus:text-primary transition-colors [&>span]:w-full">
+                                          <div className="w-full h-8 flex items-center justify-center">
+                                            <img src={gpayLogo} className="h-[24px] w-auto max-w-[100px] object-contain" alt="GPay" />
                                           </div>
                                         </SelectItem>
                                       </SelectContent>
@@ -575,7 +594,7 @@ const CartDrawer = () => {
                 {checkoutStep === 2 ? (
                   <button
                     onClick={() => setCheckoutStep(3)}
-                    disabled={!shippingInfo.name || !shippingInfo.phone || !shippingInfo.address}
+                    disabled={!shippingInfo.name || !shippingInfo.email || !shippingInfo.phone || !shippingInfo.address}
                     className="w-full py-3.5 bg-primary text-white disabled:bg-muted disabled:text-muted-foreground rounded-xl font-bold font-body shadow-soft transition-all active:scale-[0.98] active:shadow-inner"
                   >
                     Proceed to Secure Payment

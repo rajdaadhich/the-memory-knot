@@ -118,6 +118,15 @@
   .divider-ornament::after {
     background: linear-gradient(to left, transparent, hsl(var(--gold)));
   }
+  
+  /* Hide scrollbar for side-scrolling lists while keeping functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 @layer components {
@@ -147,6 +156,7 @@
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
   background: hsl(var(--cream-dark));

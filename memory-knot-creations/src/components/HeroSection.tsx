@@ -128,6 +128,13 @@ const HeroSection = () => {
             transition={{ duration: 0.8, delay: 0.1 }}
             className="order-1 lg:order-2 relative"
           >
+            {/* Preload all images to prevent glitching during the first cycle */}
+            <div className="absolute w-0 h-0 opacity-0 pointer-events-none overflow-hidden" aria-hidden="true">
+              {IMAGES.map((src, i) => (
+                <img key={`preload-${i}`} src={src} alt="" />
+              ))}
+            </div>
+
             {/* Decorative frame */}
             <div className="absolute -top-4 -right-4 w-full h-full border-2 border-primary/15 rounded-2xl hidden lg:block" />
             <div className="relative rounded-2xl overflow-hidden shadow-elevated w-full aspect-[4/3] sm:aspect-video lg:aspect-auto lg:h-[480px]">

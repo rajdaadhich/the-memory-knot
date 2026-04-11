@@ -22,6 +22,8 @@ import {
 } from 'lucide-react';
 import { SITE_CONFIG } from '@/config';
 
+const CATEGORIES = ['Couples', 'Family', 'Friends', 'Anniversary', 'Birthday'];
+
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState<'products' | 'orders' | 'contacts'>('products');
@@ -517,13 +519,17 @@ const AdminDashboard = () => {
 
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Category</label>
-                <input
-                  type="text"
-                  className="w-full p-3 rounded-lg border border-border bg-background outline-none focus:ring-2 focus:ring-primary/20 font-body text-sm"
+                <select
+                  required
+                  className="w-full p-3 rounded-lg border border-border bg-background outline-none focus:ring-2 focus:ring-primary/20 font-body text-sm cursor-pointer"
                   value={newProduct.category}
                   onChange={e => setNewProduct({...newProduct, category: e.target.value})}
-                  placeholder="e.g. Couples, Family, Friends"
-                />
+                >
+                  <option value="" disabled>Select a category</option>
+                  {CATEGORIES.map(cat => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
               </div>
 
               <div className="space-y-1.5">
