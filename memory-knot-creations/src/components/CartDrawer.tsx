@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ShoppingBag, Plus, Minus, Trash2, ArrowRight, Heart, ShieldCheck, Truck, RotateCcw, Plane, Package, Zap } from 'lucide-react';
+import { X, ShoppingBag, Plus, Minus, Trash2, ArrowRight, Heart, ShieldCheck, Truck, RotateCcw, Plane, Package, Zap, CheckCircle2, Smartphone, ExternalLink, Loader2 } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
-import { SITE_CONFIG } from '@/config';
+import { SITE_CONFIG, API_BASE_URL } from '@/config';
 import { QRCodeSVG } from 'qrcode.react';
 
 const SHIPPING_OPTIONS = [
@@ -13,9 +13,11 @@ const SHIPPING_OPTIONS = [
 ];
 
 const CartDrawer = () => {
-  const { items, removeItem, updateQuantity, isCartOpen, setIsCartOpen, totalPrice } = useCart();
+  const { items, removeItem, updateQuantity, clearCart, isCartOpen, setIsCartOpen, totalPrice } = useCart();
   const [checkoutStep, setCheckoutStep] = useState(1); // 1: Cart, 2: Shipping, 3: Payment
   const [isPaid, setIsPaid] = useState(false);
+  const [isWaitingForConfirmation, setIsWaitingForConfirmation] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [shippingInfo, setShippingInfo] = useState({
     name: '',
     phone: '',
@@ -29,7 +31,13 @@ const CartDrawer = () => {
   // UPI Deep Link Generation
   const upiId = SITE_CONFIG.upiId || "7073691168@ptsbi";
   const upiName = SITE_CONFIG.upiName || "Raj Dadhich";
+  // Generic UPI Link
   const upiUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(upiName)}&am=${finalTotal}&cu=INR&tn=Order-TheMemoryKnot`;
+  
+  // App-Specific Deep Links (Best for Mobile)
+  const phonepeUrl = `phonepe://pay?pa=${upiId}&pn=${encodeURIComponent(upiName)}&am=${finalTotal}&cu=INR`;
+  const gpayUrl = `googlepay://pay?pa=${upiId}&pn=${encodeURIComponent(upiName)}&am=${finalTotal}&cu=INR`;
+  const paytmUrl = `paytmmpay://pay?pa=${upiId}&pn=${encodeURIComponent(upiName)}&am=${finalTotal}&cu=INR`;
 
   // Fix: Robust Scroll Lock
   useEffect(() => {
@@ -43,6 +51,7 @@ const CartDrawer = () => {
       setTimeout(() => {
         setCheckoutStep(1);
         setIsPaid(false);
+        setIsWaitingForConfirmation(false);
       }, 300);
     }
   }, [isCartOpen]);
@@ -52,22 +61,49 @@ const CartDrawer = () => {
     setShippingInfo(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleFinalCheckout = () => {
-    setIsPaid(true);
-    // In a real app, send order to backend here
-    setTimeout(() => {
-      setIsCartOpen(false);
-    }, 2000);
+  const handleFinalCheckout = async () => {
+    setIsSubmitting(true);
+    try {
+      // Send Odrer to Backend
+      const response = await fetch(`${API_BASE_URL}/orders`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customerName: shippingInfo.name,
+          customerPhone: shippingInfo.phone,
+          address: shippingInfo.address,
+          totalAmount: finalTotal,
+          items: items.map(item => ({
+            id: item.id,
+            name: item.name,
+            price: item.price,
+            quantity: item.quantity
+          }))
+        })
+      });
+
+      if (!response.ok) throw new Error("Failed to place order");
+
+      setIsPaid(true);
+      clearCart();
+      
+      setTimeout(() => {
+        setIsCartOpen(false);
+      }, 4000);
+    } catch (error) {
+      console.error("Checkout Error:", error);
+      alert("Failed to confirm order. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const initiatePayment = () => {
-    // Standard deep link method for mobile browsers
-    window.location.href = upiUrl;
+  const initiatePayment = (customUrl?: string) => {
+    // Open the UPI link
+    window.open(customUrl || upiUrl, '_self');
     
-    // Safety delay: Let the browser process the deep link before closing the cart
-    setTimeout(() => {
-      handleFinalCheckout();
-    }, 500);
+    // Move to waiting view instead of finalizing
+    setIsWaitingForConfirmation(true);
   };
 
   return (
@@ -308,57 +344,123 @@ const CartDrawer = () => {
                         </div>
                       ) : (
                         <div className="space-y-6">
-                          {/* Payment Slider - Visible on all devices */}
-                          <div className="space-y-4">
-                            <p className="text-[10px] font-bold text-center text-muted-foreground uppercase tracking-widest">Slide to initiate payment</p>
-                            <div className="relative w-full h-16 bg-secondary/30 rounded-full border border-border/60 overflow-hidden p-1.5 shadow-inner">
-                              <motion.div
-                                drag="x"
-                                dragConstraints={{ left: 0, right: 300 }}
-                                dragElastic={0.05}
-                                onDragEnd={(_, info) => {
-                                  if (info.offset.x > 250) {
-                                    initiatePayment();
-                                  }
-                                }}
-                                className="absolute left-1.5 top-1.5 h-[52px] w-16 bg-primary rounded-full shadow-lg flex items-center justify-center text-white cursor-grab active:cursor-grabbing z-10"
-                                whileTap={{ scale: 0.95 }}
+                          {isWaitingForConfirmation ? (
+                            <div className="space-y-6">
+                              <motion.div 
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                className="bg-primary/5 p-6 rounded-2xl border-2 border-primary/20 text-center space-y-4"
                               >
-                                <ArrowRight size={24} className="animate-pulse-gentle" />
+                                <div className="w-16 h-16 bg-primary/10 text-primary rounded-full flex items-center justify-center mx-auto">
+                                  <Smartphone size={32} className="animate-bounce" />
+                                </div>
+                                <div className="space-y-1">
+                                  <h4 className="font-heading text-lg font-bold text-foreground">Waiting for Payment</h4>
+                                  <p className="text-xs text-muted-foreground font-body">Please finish the payment in your UPI app and then return here.</p>
+                                </div>
                               </motion.div>
-                              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                <span className="text-sm font-bold text-primary/40 uppercase tracking-widest pl-12 font-body">Swipe to Pay</span>
+
+                              <button
+                                onClick={handleFinalCheckout}
+                                disabled={isSubmitting}
+                                className="w-full py-4 bg-primary text-white rounded-xl font-bold font-heading shadow-soft flex items-center justify-center gap-2 hover:bg-primary/95 transition-all text-lg"
+                              >
+                                {isSubmitting ? (
+                                  <>
+                                    <Loader2 className="animate-spin" size={20} /> Confirming...
+                                  </>
+                                ) : (
+                                  <>
+                                    <ShieldCheck size={20} /> I Have Paid
+                                  </>
+                                )}
+                              </button>
+
+                              <button
+                                onClick={() => setIsWaitingForConfirmation(false)}
+                                className="w-full py-2 text-xs text-muted-foreground font-bold uppercase tracking-widest hover:text-primary transition-colors"
+                              >
+                                Try another method / Back
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="space-y-8">
+                              {/* Direct App Buttons */}
+                              <div className="space-y-4">
+                                <p className="text-[10px] font-bold text-center text-muted-foreground uppercase tracking-widest">Open via App</p>
+                                <div className="grid grid-cols-3 gap-3">
+                                  {[
+                                    { name: 'GPay', url: gpayUrl, color: 'hover:bg-blue-50 hover:border-blue-200' },
+                                    { name: 'PhonePe', url: phonepeUrl, color: 'hover:bg-purple-50 hover:border-purple-200' },
+                                    { name: 'Paytm', url: paytmUrl, color: 'hover:bg-cyan-50 hover:border-cyan-200' },
+                                  ].map((app) => (
+                                    <button
+                                      key={app.name}
+                                      onClick={() => initiatePayment(app.url)}
+                                      className={`flex flex-col items-center gap-2 p-3 rounded-xl border border-border/60 bg-white transition-all duration-300 ${app.color} group`}
+                                    >
+                                      <div className="w-10 h-10 rounded-full bg-secondary/30 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                        <ExternalLink size={18} className="text-muted-foreground group-hover:text-primary" />
+                                      </div>
+                                      <span className="text-[10px] font-bold font-heading uppercase">{app.name}</span>
+                                    </button>
+                                  ))}
+                                </div>
+                                <button 
+                                  onClick={() => initiatePayment()}
+                                  className="w-full text-[10px] text-center text-primary font-bold hover:underline"
+                                >
+                                  Or use any other UPI app
+                                </button>
+                              </div>
+
+                              {/* Payment Slider - Visible on all devices */}
+                              <div className="space-y-4 pt-2">
+                                <p className="text-[10px] font-bold text-center text-muted-foreground uppercase tracking-widest">Or Swipe to initiate</p>
+                                <div className="relative w-full h-16 bg-secondary/30 rounded-full border border-border/60 overflow-hidden p-1.5 shadow-inner">
+                                  <motion.div
+                                    drag="x"
+                                    dragConstraints={{ left: 0, right: 300 }}
+                                    dragElastic={0.05}
+                                    onDragEnd={(_, info) => {
+                                      if (info.offset.x > 100) {
+                                        initiatePayment();
+                                      }
+                                    }}
+                                    className="absolute left-1.5 top-1.5 h-[52px] w-16 bg-primary rounded-full shadow-lg flex items-center justify-center text-white cursor-grab active:cursor-grabbing z-10"
+                                    whileTap={{ scale: 0.95 }}
+                                  >
+                                    <ArrowRight size={24} className="animate-pulse-gentle" />
+                                  </motion.div>
+                                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                    <span className="text-sm font-bold text-primary/40 uppercase tracking-widest pl-12 font-body">Swipe for UPI</span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Fallback for Desktop/Issue cases */}
+                              <div className="flex flex-col items-center gap-3 border-t border-border/40 pt-6">
+                                <p className="text-[10px] text-muted-foreground font-body">Issues with apps? Use this ID:</p>
+                                <button 
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(upiId);
+                                    alert(`UPI ID Copied: ${upiId}`);
+                                  }}
+                                  className="text-xs font-bold text-primary border border-primary/20 bg-primary/5 px-4 py-2 rounded-full hover:bg-primary/10 transition-all flex items-center gap-2"
+                                >
+                                  <ShieldCheck size={14} /> Copy UPI ID: {upiId}
+                                </button>
+                              </div>
+
+                              {/* QR Code - Optional Fallback for Desktop */}
+                              <div className="hidden md:flex flex-col items-center gap-4 py-4 border-t border-border/40 mt-4">
+                                <div className="p-3 bg-white rounded-xl shadow-sm border border-border/40">
+                                  <QRCodeSVG value={upiUrl} size={120} />
+                                </div>
+                                <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Or Scan to Pay</p>
                               </div>
                             </div>
-                          </div>
-
-                          {/* Fallback for Desktop/Issue cases */}
-                          <div className="flex flex-col items-center gap-3">
-                            <p className="text-[10px] text-muted-foreground font-body">Slider not working? Try this:</p>
-                            <button 
-                              onClick={() => {
-                                navigator.clipboard.writeText(upiId);
-                                alert(`UPI ID Copied: ${upiId}`);
-                              }}
-                              className="text-xs font-bold text-primary border border-primary/20 bg-primary/5 px-4 py-2 rounded-full hover:bg-primary/10 transition-all flex items-center gap-2"
-                            >
-                              <ShieldCheck size={14} /> Copy UPI ID: {upiId}
-                            </button>
-                            <a 
-                              href={upiUrl}
-                              className="text-[10px] text-muted-foreground hover:text-primary transition-colors underline underline-offset-4"
-                            >
-                              Click here if you are on a phone
-                            </a>
-                          </div>
-
-                          {/* QR Code - Optional Fallback for Desktop */}
-                          <div className="hidden md:flex flex-col items-center gap-4 py-4 border-t border-border/40 mt-4">
-                            <div className="p-3 bg-white rounded-xl shadow-sm border border-border/40">
-                              <QRCodeSVG value={upiUrl} size={120} />
-                            </div>
-                            <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Or Scan to Pay</p>
-                          </div>
+                          )}
                         </div>
                       )}
                     </div>
