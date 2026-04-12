@@ -53,18 +53,24 @@ const CartDrawer = () => {
   const upiId = SITE_CONFIG.upiId || "7073691168@ptsbi";
   const upiName = SITE_CONFIG.upiName || "Raj Dadhich";
   
-  // Common parameters for all apps
-  const upiParams = `pa=${upiId}&pn=${encodeURIComponent(upiName)}&am=${finalTotal}&cu=INR&mode=02&purpose=00&tn=Order-TheMemoryKnot`;
+  // Base parameters for UPI (Barebones, to avoid P2P risk filters)
+  const baseUpiParams = `pa=${upiId}&pn=${encodeURIComponent(upiName)}&am=${finalTotal}&cu=INR`;
   
-  // Generic UPI Link
-  const upiUrl = `upi://pay?${upiParams}`;
+  // App-specific intent parameters (Omit mode/purpose to act as a basic link)
+  const intentParams = `${baseUpiParams}`;
   
-  // App-Specific Deep Links (Revised for iPhone Compatibility)
-  const phonepeUrl = `phonepe://pay?${upiParams}`;
+  // QR Code parameters (mode=02 for Secure QR Code, tn for transaction note)
+  const qrParams = `${baseUpiParams}&mode=02&purpose=00&tn=Order-TheMemoryKnot`;
+  
+  // Generic UPI Link (for the actual visual QR code)
+  const upiUrl = `upi://pay?${qrParams}`;
+  
+  // App-Specific Deep Links (Revised for iPhone Compatibility and solving ₹2000 limits)
+  const phonepeUrl = `phonepe://pay?${intentParams}`;
   // Use 'gpay://' or 'tez://' for Indian GPay on iOS
-  const gpayUrl = isIOS ? `gpay://upi/pay?${upiParams}` : `tez://upi/pay?${upiParams}`;
+  const gpayUrl = isIOS ? `gpay://upi/pay?${intentParams}` : `tez://upi/pay?${intentParams}`;
   // Use 'paytmmp://' for Paytm on iOS (more reliable than 'paytm://')
-  const paytmUrl = isIOS ? `paytmmp://pay?${upiParams}` : `paytmmpay://pay?${upiParams}`;
+  const paytmUrl = isIOS ? `paytmmp://pay?${intentParams}` : `paytmmpay://pay?${intentParams}`;
 
   const appLinks = {
     paytm: paytmUrl,
