@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ShoppingBag, Plus, Minus, Trash2, ArrowLeft, ArrowRight, Heart, ShieldCheck, Truck, RotateCcw, Plane, Package, Zap, CheckCircle2, Smartphone, ExternalLink, Loader2, Scan as LucideScanLine } from 'lucide-react';
+import { X, ShoppingBag, Plus, Minus, Trash2, ArrowLeft, ArrowRight, Heart, ShieldCheck, Truck, RotateCcw, Plane, Package, Zap, CheckCircle2, Smartphone, ExternalLink, Loader2, Scan as LucideScanLine, Star } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
 import { SITE_CONFIG, API_BASE_URL } from '@/config';
 import { QRCodeSVG } from 'qrcode.react';
@@ -20,7 +20,8 @@ const SHIPPING_OPTIONS = [
   { id: 'standard', name: 'Standard Delivery', price: 199, timeline: '6-7 Days', icon: Truck },
   { id: 'bulky', name: 'Big/Bulky Order', price: 300, timeline: '7-8 Days', icon: Package },
   { id: 'express', name: 'Express Speed', price: 399, timeline: '2-3 Days', icon: Zap },
-  { id: 'air', name: 'Express By Air', price: 600, timeline: 'Lightning Fast', icon: Plane }
+  { id: 'air', name: 'Express By Air', price: 600, timeline: 'Lightning Fast', icon: Plane },
+  { id: 'special', name: 'Special Delivery', price: 1, timeline: 'As Discussed', icon: Star }
 ];
 
 const CartDrawer = () => {
@@ -313,6 +314,7 @@ const CartDrawer = () => {
                               {selectedShipping.id === 'bulky' && <Package size={16} />}
                               {selectedShipping.id === 'express' && <Zap size={16} />}
                               {selectedShipping.id === 'air' && <Plane size={16} />}
+                              {selectedShipping.id === 'special' && <Star size={16} />}
                            </div>
                            <div className="flex-1">
                              <p className="text-xs font-bold text-foreground">{selectedShipping.name}</p>
@@ -320,7 +322,8 @@ const CartDrawer = () => {
                                 selectedShipping.id === 'standard' ? 'Standard delivery timeline via surface transport.' :
                                 selectedShipping.id === 'bulky' ? 'Specialized handling for large/heavy items.' :
                                 selectedShipping.id === 'express' ? 'Priority dispatch and delivery.' :
-                                'Premium expedited delivery via air cargo.'
+                                selectedShipping.id === 'air' ? 'Premium expedited delivery via air cargo.' :
+                                'Custom delivery as mutually discussed. ₹1 only.'
                              }</p>
                            </div>
                         </div>

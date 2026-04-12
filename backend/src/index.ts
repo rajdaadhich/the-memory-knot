@@ -70,17 +70,20 @@ import prisma from "./lib/prisma";
 const PORT = process.env.PORT || 5000;
 
 async function startServer() {
+  // Start listening immediately regardless of DB state
+  app.listen(parseInt(PORT as string), "0.0.0.0", () => {
+    console.log(`🚀 Server running on http://0.0.0.0:${PORT}`);
+  });
+
+  // Try connecting to DB (non-blocking)
   try {
     console.log("⏳ Connecting to database...");
     await prisma.$connect();
     console.log("✅ Database Connected Successfully");
-
-    app.listen(parseInt(PORT as string), "0.0.0.0", () => {
-      console.log(`🚀 Server running on http://0.0.0.0:${PORT}`);
-    });
   } catch (error) {
     console.error("❌ Database Connection Failed:", error);
-    process.exit(1);
+    console.warn("⚠️  Server is running but DB is unavailable. Check Supabase dashboard — your project may be paused.");
+    // Do NOT exit — let the server stay alive
   }
 }
 
