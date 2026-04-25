@@ -23,7 +23,8 @@ import {
   TrendingUp,
   ImageIcon,
   Upload,
-  Link
+  Link,
+  Truck
 } from 'lucide-react';
 import { SITE_CONFIG } from '@/config';
 
