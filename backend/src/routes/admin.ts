@@ -194,16 +194,30 @@ router.put("/profile", verifyToken, async (req: any, res: any) => {
 
 // Get Admin Data
 router.get("/orders", verifyToken, async (req, res) => {
-  const orders = await prisma.order.findMany({ 
-    include: { items: { include: { product: true } } },
-    orderBy: { createdAt: "desc" }
-  });
-  res.json(orders);
+  try {
+    const orders = await prisma.order.findMany({ 
+      include: { items: { include: { product: true } } },
+      orderBy: { createdAt: "desc" }
+    });
+    res.json(orders);
+  } catch (error: any) {
+    console.error("Admin Get Orders Error:", error);
+    res.status(500).json({ 
+      error: "Failed to fetch orders", 
+      details: error.message,
+      code: error.code // Prisma error codes are very helpful
+    });
+  }
 });
 
 router.get("/contacts", verifyToken, async (req, res) => {
-  const contacts = await prisma.contact.findMany({ orderBy: { createdAt: "desc" } });
-  res.json(contacts);
+  try {
+    const contacts = await prisma.contact.findMany({ orderBy: { createdAt: "desc" } });
+    res.json(contacts);
+  } catch (error: any) {
+    console.error("Admin Get Contacts Error:", error);
+    res.status(500).json({ error: "Failed to fetch contacts", details: error.message });
+  }
 });
 
 router.delete("/contacts/:id", verifyToken, async (req, res) => {
