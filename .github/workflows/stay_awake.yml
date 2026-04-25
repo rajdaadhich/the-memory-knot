@@ -1,0 +1,28 @@
+name: Keep Alive Heartbeat
+
+on:
+  schedule:
+    # Run every 10 minutes to prevent server sleep (Keep-Alive)
+    # Also ensures Supabase never pauses (Heartbeat)
+    - cron: '*/10 * * * *'
+  workflow_dispatch: # Allows manual triggering
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Backend Health Check
+        run: |
+          # Replace the URL below with your actual deployed Backend URL
+          # Example: https://memory-knot-backend.onrender.com/api/health-check
+          URL="https://the-memory-knot.onrender.com/api/health-check"
+          
+          echo "Pinging $URL..."
+          response=$(curl -s -o /dev/null -w "%{http_code}" "$URL")
+          
+          if [ "$response" -eq 200 ]; then
+            echo "✅ Success: API is awake and Database is active!"
+          else
+            echo "❌ Error: Received HTTP $response"
+            exit 1
+          fi

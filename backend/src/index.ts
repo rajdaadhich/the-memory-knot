@@ -47,6 +47,17 @@ app.get("/", (req, res) => {
   });
 });
 
+// Deep health check (Pings DB)
+app.get("/api/health-check", async (req, res) => {
+  try {
+    await prisma.product.count();
+    res.status(200).json({ status: "healthy", db: "connected" });
+  } catch (err) {
+    console.error("Health Check Failed:", err);
+    res.status(503).json({ status: "unhealthy", db: "disconnected" });
+  }
+});
+
 // Import Routes
 import productRoutes from "./routes/product";
 import orderRoutes from "./routes/order";

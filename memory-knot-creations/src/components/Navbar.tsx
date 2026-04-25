@@ -22,14 +22,19 @@ const Navbar = () => {
   const navLinks = [
     { label: 'Home', href: '/' },
     { label: 'Shop', href: '/shop' },
+    { label: 'Track Order', href: '/track-order' },
     { label: 'About Us', href: '/about' },
     { label: 'Reviews', href: '/#reviews' },
     { label: 'Contact', href: '/contact' },
   ];
 
   const isActive = (href: string) => {
-    if (href === '/') return location.pathname === '/';
-    return location.pathname.startsWith(href.split('#')[0]) && href !== '/';
+    if (href === '/') return location.pathname === '/' && !location.hash;
+    const [path, hash] = href.split('#');
+    if (hash) {
+      return location.pathname === path && location.hash === `#${hash}`;
+    }
+    return location.pathname.startsWith(path) && href !== '/';
   };
 
   return (

@@ -36,7 +36,8 @@ const CartDrawer = () => {
     name: '',
     email: '',
     phone: '',
-    address: ''
+    address: '',
+    pincode: ''
   });
   
   // Set default shipping to Standard Delivery (SHIPPING_OPTIONS[0]) 
@@ -111,7 +112,7 @@ const CartDrawer = () => {
           customerName: shippingInfo.name,
           customerEmail: shippingInfo.email,
           customerPhone: shippingInfo.phone,
-          address: shippingInfo.address,
+          address: `${shippingInfo.address}${shippingInfo.pincode ? `, Pincode: ${shippingInfo.pincode}` : ''}`,
           totalAmount: finalTotal,
           items: items.map(item => ({
             id: item.id,
@@ -248,8 +249,15 @@ const CartDrawer = () => {
                             animate={{ opacity: 1, y: 0 }}
                             className="flex gap-4 p-3 rounded-xl bg-secondary/20 border border-border/40 group relative overflow-hidden"
                           >
-                            <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 border border-border/60">
-                              <img src={item.image} alt={item.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                            <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 border border-border/60 bg-secondary/30 flex items-center justify-center">
+                              <img 
+                                src={item.image || 'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=600&q=80'} 
+                                alt={item.name} 
+                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=600&q=80';
+                                }}
+                              />
                             </div>
                             <div className="flex-1 min-w-0 flex flex-col justify-between">
                               <div>
@@ -276,9 +284,9 @@ const CartDrawer = () => {
                             </div>
                             <button
                               onClick={() => removeItem(item.id)}
-                              className="absolute top-2 right-2 p-1 text-muted-foreground/30 hover:text-red-500 transition-colors"
+                              className="absolute top-2 right-2 p-1.5 text-muted-foreground/40 hover:text-red-500 transition-colors rounded-lg hover:bg-red-50"
                             >
-                              <Trash2 size={12} />
+                              <Trash2 size={18} />
                             </button>
                           </motion.div>
                         ))}
@@ -377,13 +385,25 @@ const CartDrawer = () => {
                             />
                           </div>
                           <div className="space-y-1.5">
+                            <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground ml-1">Pincode</label>
+                            <input
+                              type="text"
+                              name="pincode"
+                              value={shippingInfo.pincode}
+                              onChange={handleInputChange}
+                              placeholder="6-digit Pincode"
+                              maxLength={6}
+                              className="w-full px-4 py-3 rounded-xl border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm font-body shadow-sm"
+                            />
+                          </div>
+                          <div className="space-y-1.5">
                             <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground ml-1">Complete Address</label>
                             <textarea
                               name="address"
                               value={shippingInfo.address}
                               onChange={handleInputChange}
                               rows={3}
-                              placeholder="House no, Area, City, Pin"
+                              placeholder="House no, Area, City"
                               className="w-full px-4 py-3 rounded-xl border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm font-body shadow-sm resize-none"
                             />
                           </div>
@@ -603,7 +623,7 @@ const CartDrawer = () => {
                 {checkoutStep === 2 ? (
                   <button
                     onClick={() => setCheckoutStep(3)}
-                    disabled={!shippingInfo.name || !shippingInfo.email || !shippingInfo.phone || !shippingInfo.address}
+                    disabled={!shippingInfo.name || !shippingInfo.email || !shippingInfo.phone || !shippingInfo.address || !shippingInfo.pincode}
                     className="w-full py-3.5 bg-primary text-white disabled:bg-muted disabled:text-muted-foreground rounded-xl font-bold font-body shadow-soft transition-all active:scale-[0.98] active:shadow-inner"
                   >
                     Proceed to Secure Payment

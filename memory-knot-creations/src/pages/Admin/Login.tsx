@@ -2,11 +2,13 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
-import { Lock, Heart } from 'lucide-react';
+import { Eye, EyeOff, Lock, Heart } from 'lucide-react';
 import { SITE_CONFIG } from '@/config';
 
 const AdminLogin = () => {
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -14,12 +16,12 @@ const AdminLogin = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      const { token } = await api.adminLogin(password);
+      const { token } = await api.adminLogin(username, password);
       localStorage.setItem('admin_token', token);
       toast.success('Welcome back, Admin!');
       navigate('/admin/dashboard');
     } catch {
-      toast.error('Invalid admin password');
+      toast.error('Invalid username or password');
     } finally {
       setLoading(false);
     }
@@ -49,21 +51,51 @@ const AdminLogin = () => {
               <Lock size={24} />
             </div>
             <h1 className="font-heading text-2xl font-bold text-foreground">Admin Login</h1>
-            <p className="text-muted-foreground text-xs mt-1 font-body">Enter your password to access the dashboard</p>
+            <p className="text-muted-foreground text-xs mt-1 font-body">Sign in to access the dashboard</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Admin Password</label>
+              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Username</label>
               <input
-                type="password"
-                id="admin-password"
+                type="text"
+                id="admin-username"
                 className="w-full p-3.5 rounded-lg border border-border bg-background focus:ring-2 focus:ring-primary/20 outline-none transition-all font-body text-sm"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Admin1"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 required
               />
+            </div>
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Password</label>
+                <button
+                  type="button"
+                  onClick={() => navigate('/admin/forgot-password')}
+                  className="text-xs font-medium text-primary hover:underline hover:text-primary/80 transition-colors font-body"
+                >
+                  Forgot Password?
+                </button>
+              </div>
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  id="admin-password"
+                  className="w-full p-3.5 pr-12 rounded-lg border border-border bg-background focus:ring-2 focus:ring-primary/20 outline-none transition-all font-body text-sm"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1"
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
             </div>
             <button
               type="submit"

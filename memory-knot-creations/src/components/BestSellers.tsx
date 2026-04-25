@@ -17,7 +17,8 @@ const BestSellers = () => {
   const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
 
   useEffect(() => {
-    api.getProducts().then(data => {
+    api.getFeaturedProducts().then(data => {
+      // Show only the first 3 featured products as "Best Sellers"
       setProducts(data.slice(0, 3));
       setLoading(false);
     }).catch(() => setLoading(false));

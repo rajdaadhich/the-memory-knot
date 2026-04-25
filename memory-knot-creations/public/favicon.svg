@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Cream background with subtle border like the logo -->
+  <rect width="64" height="64" rx="10" fill="#FAF7F4"/>
+  <rect width="64" height="64" rx="10" fill="none" stroke="#D9C9BC" stroke-width="2"/>
+
+  <!-- M&K in dark serif style matching the footer logo -->
+  <text
+    x="32"
+    y="43"
+    font-family="'Playfair Display', 'Georgia', 'Times New Roman', serif"
+    font-weight="700"
+    font-size="24"
+    fill="#2C1810"
+    text-anchor="middle"
+    dominant-baseline="auto"
+    letter-spacing="-1"
+  >M&amp;K</text>
+</svg>

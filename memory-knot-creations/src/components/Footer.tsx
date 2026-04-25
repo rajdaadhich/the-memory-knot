@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Heart, Instagram, Facebook, MessageCircle, Mail, Phone, MapPin } from 'lucide-react';
+import { Heart, Instagram, Facebook, Mail, MapPin } from 'lucide-react';
 import { SITE_CONFIG } from '@/config';
 
 const Footer = () => {
@@ -11,6 +11,7 @@ const Footer = () => {
           <div className="flex flex-wrap items-center justify-center gap-6 md:gap-10">
             {[
               { label: 'Quick Links', href: '/' },
+              { label: 'Track Order', href: '/track-order' },
               { label: 'About Us', href: '/about' },
               { label: 'FAQs', href: '/about#faqs' },
               { label: 'Shipping & Returns', href: '/contact#shipping' },
@@ -48,10 +49,6 @@ const Footer = () => {
               <Mail size={11} />
               <span>Email: {SITE_CONFIG.email}</span>
             </div>
-            <div className="flex items-center gap-2">
-              <Phone size={11} />
-              <span>Call / WhatsApp: {SITE_CONFIG.phone}</span>
-            </div>
           </div>
 
           {/* Brand watermark */}
@@ -64,10 +61,6 @@ const Footer = () => {
               <a href={SITE_CONFIG.facebook} target="_blank" rel="noopener noreferrer"
                 className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-foreground/50 hover:text-primary hover:bg-primary/10 transition-colors">
                 <Facebook size={14} />
-              </a>
-              <a href={`https://wa.me/${SITE_CONFIG.whatsappNumber}`} target="_blank" rel="noopener noreferrer"
-                className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-foreground/50 hover:text-[#25D366] hover:bg-green-50 transition-colors">
-                <MessageCircle size={14} />
               </a>
             </div>
             <p className="font-heading text-4xl font-bold text-foreground/8 select-none">M&K</p>

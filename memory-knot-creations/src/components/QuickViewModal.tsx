@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ShoppingBag, Share2, Heart, Star, ShieldCheck } from 'lucide-react';
+import { X, ShoppingBag, Share2, Heart, Star, ShieldCheck, Check } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
 import { SITE_CONFIG } from '@/config';
 
@@ -10,6 +11,29 @@ interface QuickViewModalProps {
 
 const QuickViewModal = ({ product, onClose }: QuickViewModalProps) => {
   const { addItem } = useCart();
+  const [copied, setCopied] = useState(false);
+
+  const handleShare = async () => {
+    const shareUrl = window.location.href;
+    const shareText = `Check out "${product.name}" on ${SITE_CONFIG.name} — ₹${product.price.toLocaleString()}`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: product.name, text: shareText, url: shareUrl });
+      } catch (err) {
+        // User cancelled share — do nothing
+      }
+    } else {
+      // Fallback: copy link to clipboard
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } catch {
+        prompt('Copy this link:', shareUrl);
+      }
+    }
+  };
 
   if (!product) return null;
 
@@ -70,11 +94,6 @@ const QuickViewModal = ({ product, onClose }: QuickViewModalProps) => {
                   <h2 className="font-heading text-2xl md:text-3xl font-bold text-foreground leading-tight">{product.name}</h2>
                   <div className="flex items-center gap-4 mt-3">
                     <span className="text-2xl font-bold text-primary">₹{product.price.toLocaleString()}</span>
-                    {product.price > 499 && (
-                      <span className="px-2 py-1 bg-green-100 text-green-700 text-[10px] font-bold rounded uppercase tracking-wider">
-                        Free Shipping
-                      </span>
-                    )}
                   </div>
                 </div>
 
@@ -104,8 +123,16 @@ const QuickViewModal = ({ product, onClose }: QuickViewModalProps) => {
                     <ShoppingBag size={18} />
                     {product.isSoldOut ? 'Sold Out' : 'Add to Gift Box'}
                   </button>
-                  <button className="p-3 border border-border rounded-xl text-muted-foreground hover:text-primary hover:border-primary transition-all">
-                    <Share2 size={20} />
+                  <button
+                    onClick={handleShare}
+                    title={copied ? 'Link Copied!' : 'Share this product'}
+                    className={`p-3 border rounded-xl transition-all ${
+                      copied
+                        ? 'border-green-400 text-green-500 bg-green-50'
+                        : 'border-border text-muted-foreground hover:text-primary hover:border-primary'
+                    }`}
+                  >
+                    {copied ? <Check size={20} /> : <Share2 size={20} />}
                   </button>
                 </div>
               </div>

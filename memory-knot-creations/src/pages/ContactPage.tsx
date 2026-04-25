@@ -1,11 +1,10 @@
 import { useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
-import { Phone, Mail, MapPin, MessageCircle, Send, Heart } from 'lucide-react';
+import { Mail, MapPin, Send, Heart } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import CartDrawer from '@/components/CartDrawer';
-import WhatsAppButton from '@/components/WhatsAppButton';
 import { SITE_CONFIG } from '@/config';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
@@ -36,7 +35,7 @@ const ContactPage = () => {
     <>
       <Helmet>
         <title>Contact Us | {SITE_CONFIG.name}</title>
-        <meta name="description" content={`Get in touch with ${SITE_CONFIG.name}. Contact us via WhatsApp, email, or our contact form for personalized gift inquiries.`} />
+        <meta name="description" content={`Get in touch with ${SITE_CONFIG.name}. Contact us via email or our contact form for personalized gift inquiries.`} />
       </Helmet>
 
       <div className="min-h-screen bg-[#F8F3EE]">
@@ -71,21 +70,6 @@ const ContactPage = () => {
               </p>
 
               <div className="space-y-5">
-                <a
-                  href={`https://wa.me/${SITE_CONFIG.whatsappNumber}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-4 p-4 bg-white rounded-xl border border-border/60 shadow-card hover:shadow-elevated hover:border-primary/30 transition-all group"
-                >
-                  <div className="w-12 h-12 bg-green-50 rounded-full flex items-center justify-center group-hover:bg-green-100 transition-colors">
-                    <MessageCircle size={22} className="text-[#25D366]" />
-                  </div>
-                  <div>
-                    <p className="font-heading font-semibold text-foreground text-sm">WhatsApp (Fastest)</p>
-                    <p className="text-muted-foreground text-xs font-body mt-0.5">{SITE_CONFIG.phone}</p>
-                  </div>
-                </a>
-
                 <a
                   href={`mailto:${SITE_CONFIG.email}`}
                   className="flex items-center gap-4 p-4 bg-white rounded-xl border border-border/60 shadow-card hover:shadow-elevated hover:border-primary/30 transition-all group"
@@ -205,19 +189,6 @@ const ContactPage = () => {
                     <Send size={16} />
                     {isSubmitting ? 'Sending...' : 'Send Message'}
                   </button>
-
-                  <p className="text-center text-xs text-muted-foreground font-body">
-                    Or chat directly on{' '}
-                    <a
-                      href={`https://wa.me/${SITE_CONFIG.whatsappNumber}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[#25D366] font-semibold hover:underline"
-                    >
-                      WhatsApp
-                    </a>
-                    {' '}for a faster response
-                  </p>
                 </form>
               </div>
             </motion.div>

@@ -4,7 +4,6 @@ import { motion } from 'framer-motion';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import CartDrawer from '@/components/CartDrawer';
-import WhatsAppButton from '@/components/WhatsAppButton';
 import { SITE_CONFIG } from '@/config';
 import { Link } from 'react-router-dom';
 
@@ -37,11 +36,11 @@ const values = [
 const faqs = [
   {
     q: 'How long does it take to receive my order?',
-    a: 'Most orders are completed and shipped within 5–7 business days. Custom or complex orders may take a bit longer. We\'ll keep you updated via WhatsApp.',
+    a: 'Most orders are completed and shipped within 5–7 business days. Custom or complex orders may take a bit longer. We\'ll keep you updated via email.',
   },
   {
     q: 'How do I place a custom order?',
-    a: 'You can place a custom order by contacting us directly on WhatsApp at +91 7073691168, or via the contact form on our Contact page.',
+    a: 'You can place a custom order by contacting us directly via the contact form on our Contact page or by emailing our support team.',
   },
   {
     q: 'What if I am not satisfied with my order?',

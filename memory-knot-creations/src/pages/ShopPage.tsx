@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { ShoppingBag, Eye, Search, SlidersHorizontal, X, ChevronDown } from 'lucide-react';
+import { ShoppingBag, Eye, Search, SlidersHorizontal, X, ChevronDown, Loader2 } from 'lucide-react';
 import { Helmet } from 'react-helmet-async';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -11,71 +11,104 @@ import { api } from '@/lib/api';
 import { SITE_CONFIG } from '@/config';
 
 const SORT_OPTIONS = [
-  { value: 'popular', label: 'Most Popular' },
-  { value: 'price-asc', label: 'Price: Low to High' },
+  { value: 'popular',    label: 'Most Popular' },
+  { value: 'price-asc',  label: 'Price: Low to High' },
   { value: 'price-desc', label: 'Price: High to Low' },
-  { value: 'newest', label: 'Newest First' },
+  { value: 'newest',     label: 'Newest First' },
 ];
 
 const CATEGORIES = ['All', 'Couples', 'Family', 'Friends', 'Anniversary', 'Birthday'];
+const PAGE_LIMIT = 12;
 
 const ShopPage = () => {
   const { addItem } = useCart();
-  const [products, setProducts] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+
+  // Products state
+  const [products, setProducts]     = useState<any[]>([]);
+  const [page, setPage]             = useState(1);
+  const [hasMore, setHasMore]       = useState(true);
+  const [total, setTotal]           = useState(0);
+  const [loading, setLoading]       = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  // Filter state
   const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState('popular');
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 5000]);
+  const [searchQuery, setSearchQuery]         = useState('');
+  const [sortBy, setSortBy]                   = useState('popular');
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const [showFilters, setShowFilters] = useState(false);
+  const [showFilters, setShowFilters]           = useState(false);
+
+  // Debounced search
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchQuery), 400);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Reset + reload when filters change
+  useEffect(() => {
+    setProducts([]);
+    setPage(1);
+    setHasMore(true);
+    setLoading(true);
+  }, [debouncedSearch, sortBy, selectedCategory]);
+
+  // Fetch a page of products
+  const fetchPage = useCallback(async (pageNum: number) => {
+    try {
+      const data = await api.getProductsPaginated({
+        page: pageNum,
+        limit: PAGE_LIMIT,
+        category: selectedCategory,
+        search: debouncedSearch,
+        sort: sortBy,
+      });
+      setProducts(prev => pageNum === 1 ? data.products : [...prev, ...data.products]);
+      setTotal(data.total);
+      setHasMore(data.hasMore);
+    } catch {
+      // silently fail, keep existing products
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  }, [debouncedSearch, sortBy, selectedCategory]);
+
+  // Initial load and page changes
+  useEffect(() => {
+    if (page === 1 && loading) {
+      fetchPage(1);
+    }
+  }, [page, loading, fetchPage]);
 
   useEffect(() => {
-    api.getProducts().then(data => {
-      setProducts(data);
-      setLoading(false);
-    }).catch(() => setLoading(false));
-  }, []);
-
-  const maxPrice = useMemo(() => {
-    if (products.length === 0) return 5000;
-    return Math.ceil(Math.max(...products.map(p => p.price)) / 500) * 500;
-  }, [products]);
-
-  const filteredProducts = useMemo(() => {
-    let result = [...products];
-
-    if (searchQuery) {
-      result = result.filter(p =>
-        p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (p.description && p.description.toLowerCase().includes(searchQuery.toLowerCase()))
-      );
+    if (page > 1) {
+      fetchPage(page);
     }
+  }, [page]);
 
-    if (selectedCategory !== 'All') {
-      result = result.filter(p =>
-        p.category && p.category.toLowerCase().includes(selectedCategory.toLowerCase())
-      );
-    }
+  // IntersectionObserver sentinel for infinite scroll
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!sentinelRef.current) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loadingMore && !loading) {
+          setLoadingMore(true);
+          setPage(prev => prev + 1);
+        }
+      },
+      { rootMargin: '1200px' }
+    );
+    observer.observe(sentinelRef.current);
+    return () => observer.disconnect();
+  }, [hasMore, loadingMore, loading]);
 
-    result = result.filter(p => p.price >= priceRange[0] && p.price <= priceRange[1]);
-
-    switch (sortBy) {
-      case 'price-asc':
-        result.sort((a, b) => a.price - b.price);
-        break;
-      case 'price-desc':
-        result.sort((a, b) => b.price - a.price);
-        break;
-      case 'newest':
-        result.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
-        break;
-      default:
-        break;
-    }
-
-    return result;
-  }, [products, searchQuery, sortBy, priceRange, selectedCategory]);
+  const handleClearFilters = () => {
+    setSearchQuery('');
+    setSelectedCategory('All');
+    setSortBy('popular');
+  };
 
   return (
     <>
@@ -97,7 +130,7 @@ const ShopPage = () => {
             </p>
             <h1 className="font-heading text-3xl font-bold text-foreground">All Products</h1>
             <p className="text-muted-foreground text-sm font-body mt-1">
-              {filteredProducts.length} gift{filteredProducts.length !== 1 ? 's' : ''} found
+              {loading ? 'Loading...' : `${total} gift${total !== 1 ? 's' : ''} found`}
             </p>
           </div>
         </div>
@@ -138,7 +171,7 @@ const ShopPage = () => {
               <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
             </div>
 
-            {/* Filter toggle (mobile) */}
+            {/* Filter toggle */}
             <button
               onClick={() => setShowFilters(!showFilters)}
               id="toggle-filters"
@@ -154,42 +187,8 @@ const ShopPage = () => {
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-white rounded-xl border border-border p-5 mb-6 grid md:grid-cols-2 gap-6"
+              className="bg-white rounded-xl border border-border p-5 mb-6"
             >
-              {/* Price Range */}
-              <div>
-                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3 block">
-                  Price Range: ₹{priceRange[0].toLocaleString()} – ₹{priceRange[1].toLocaleString()}
-                </label>
-                <div className="space-y-2">
-                  <input
-                    type="range"
-                    min={0}
-                    max={maxPrice}
-                    step={100}
-                    value={priceRange[0]}
-                    onChange={e => setPriceRange([Number(e.target.value), priceRange[1]])}
-                    className="w-full accent-primary"
-                    id="price-min"
-                  />
-                  <input
-                    type="range"
-                    min={0}
-                    max={maxPrice}
-                    step={100}
-                    value={priceRange[1]}
-                    onChange={e => setPriceRange([priceRange[0], Number(e.target.value)])}
-                    className="w-full accent-primary"
-                    id="price-max"
-                  />
-                </div>
-                <div className="flex justify-between text-xs text-muted-foreground font-body mt-1">
-                  <span>₹0</span>
-                  <span>₹{maxPrice.toLocaleString()}</span>
-                </div>
-              </div>
-
-              {/* Category */}
               <div>
                 <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3 block">Category</label>
                 <div className="flex flex-wrap gap-2">
@@ -232,7 +231,7 @@ const ShopPage = () => {
           {/* Products Grid */}
           {loading ? (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 lg:gap-5">
-              {Array(8).fill(0).map((_, i) => (
+              {Array(PAGE_LIMIT).fill(0).map((_, i) => (
                 <div key={i} className="space-y-3">
                   <Skeleton className="aspect-square w-full rounded-xl" />
                   <Skeleton className="h-4 w-3/4" />
@@ -240,90 +239,100 @@ const ShopPage = () => {
                 </div>
               ))}
             </div>
-          ) : filteredProducts.length === 0 ? (
+          ) : products.length === 0 ? (
             <div className="text-center py-20 text-muted-foreground">
               <ShoppingBag size={48} className="mx-auto mb-4 opacity-20" />
               <p className="font-heading text-xl font-semibold text-foreground/50">No products found</p>
               <p className="text-sm mt-1 font-body">Try adjusting your filters or search terms</p>
-              <button
-                onClick={() => {
-                  setSearchQuery('');
-                  setSelectedCategory('All');
-                  setPriceRange([0, maxPrice]);
-                }}
-                className="mt-4 btn-primary text-sm"
-              >
+              <button onClick={handleClearFilters} className="mt-4 btn-primary text-sm">
                 Clear Filters
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 lg:gap-5">
-              {filteredProducts.map((product, i) => (
-                <motion.div
-                  key={product.id}
-                  initial={{ opacity: 0, y: 16 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.04 }}
-                  className="group bg-white rounded-xl overflow-hidden shadow-card hover:shadow-elevated transition-all duration-300 border border-border/50"
-                >
-                  <div className="relative aspect-square overflow-hidden">
-                    <img
-                      src={product.image || 'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=600&q=80'}
-                      alt={product.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      loading="lazy"
-                    />
-                    {product.isSoldOut ? (
-                      <div className="absolute inset-x-0 top-6 flex justify-center z-10 pointer-events-none">
-                        <span className="px-4 py-1.5 bg-red-500/90 backdrop-blur-md text-white text-[11px] font-bold uppercase tracking-widest rounded shadow-lg border border-red-400/30">
-                          Sold Out
+            <>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 lg:gap-5">
+                {products.map((product, i) => (
+                  <motion.div
+                    key={product.id}
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: Math.min(i % PAGE_LIMIT, 7) * 0.05 }}
+                    className="group bg-white rounded-xl overflow-hidden shadow-card hover:shadow-elevated transition-all duration-300 border border-border/50"
+                  >
+                    <div className="relative aspect-square overflow-hidden">
+                      <img
+                        src={product.image || 'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=600&q=80'}
+                        alt={product.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        loading="lazy"
+                      />
+                      {product.isSoldOut ? (
+                        <div className="absolute inset-x-0 top-6 flex justify-center z-10 pointer-events-none">
+                          <span className="px-4 py-1.5 bg-red-500/90 backdrop-blur-md text-white text-[11px] font-bold uppercase tracking-widest rounded shadow-lg border border-red-400/30">
+                            Sold Out
+                          </span>
+                        </div>
+                      ) : product.featured ? (
+                        <span className="absolute top-2 left-2 px-2.5 py-0.5 bg-primary text-white text-[10px] font-bold uppercase tracking-wider rounded-sm">
+                          Featured
                         </span>
+                      ) : null}
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
+                        <button
+                          onClick={() => addItem({ id: product.id, name: product.name, price: product.price, image: product.image })}
+                          disabled={product.isSoldOut}
+                          className={`w-9 h-9 rounded-full flex items-center justify-center shadow-soft transition-transform ${product.isSoldOut ? 'bg-muted text-muted-foreground cursor-not-allowed opacity-70' : 'bg-primary text-white hover:scale-110'}`}
+                          aria-label="Add to cart"
+                          id={`shop-add-${product.id}`}
+                        >
+                          <ShoppingBag size={15} />
+                        </button>
+                        <button
+                          onClick={() => setSelectedProduct(product)}
+                          className="w-9 h-9 rounded-full bg-white text-foreground flex items-center justify-center shadow-soft hover:scale-110 transition-transform"
+                          aria-label="Quick view"
+                        >
+                          <Eye size={15} />
+                        </button>
                       </div>
-                    ) : product.featured ? (
-                      <span className="absolute top-2 left-2 px-2.5 py-0.5 bg-primary text-white text-[10px] font-bold uppercase tracking-wider rounded-sm">
-                        Featured
-                      </span>
-                    ) : null}
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
+                    </div>
+                    <div className="p-3">
+                      <h3 className="font-heading font-semibold text-foreground text-sm truncate">{product.name}</h3>
+                      <div className="flex items-center justify-between mt-1.5">
+                        <span className="text-primary font-bold">₹{product.price.toLocaleString()}</span>
+                      </div>
                       <button
                         onClick={() => addItem({ id: product.id, name: product.name, price: product.price, image: product.image })}
                         disabled={product.isSoldOut}
-                        className={`w-9 h-9 rounded-full flex items-center justify-center shadow-soft transition-transform ${product.isSoldOut ? 'bg-muted text-muted-foreground cursor-not-allowed opacity-70' : 'bg-primary text-white hover:scale-110'}`}
-                        aria-label="Add to cart"
-                        id={`shop-add-${product.id}`}
+                        className={`mt-2 w-full py-1.5 text-xs font-medium border rounded transition-colors ${
+                          product.isSoldOut
+                            ? 'border-border bg-secondary text-muted-foreground cursor-not-allowed'
+                            : 'border-primary text-primary hover:bg-primary hover:text-white'
+                        }`}
+                        id={`shop-cart-${product.id}`}
                       >
-                        <ShoppingBag size={15} />
-                      </button>
-                      <button
-                        onClick={() => setSelectedProduct(product)}
-                        className="w-9 h-9 rounded-full bg-white text-foreground flex items-center justify-center shadow-soft hover:scale-110 transition-transform"
-                        aria-label="Quick view"
-                      >
-                        <Eye size={15} />
+                        {product.isSoldOut ? 'Sold Out' : 'Add to Cart'}
                       </button>
                     </div>
+                  </motion.div>
+                ))}
+              </div>
+
+              {/* Infinite scroll sentinel */}
+              <div ref={sentinelRef} className="py-8 flex justify-center">
+                {loadingMore && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground font-body">
+                    <Loader2 size={18} className="animate-spin text-primary" />
+                    Loading more gifts...
                   </div>
-                  <div className="p-3">
-                    <h3 className="font-heading font-semibold text-foreground text-sm truncate">{product.name}</h3>
-                    <div className="flex items-center justify-between mt-1.5">
-                      <span className="text-primary font-bold">₹{product.price.toLocaleString()}</span>
-                    </div>
-                    <button
-                      onClick={() => addItem({ id: product.id, name: product.name, price: product.price, image: product.image })}
-                      disabled={product.isSoldOut}
-                      className={`mt-2 w-full py-1.5 text-xs font-medium border rounded transition-colors ${
-                        product.isSoldOut 
-                          ? 'border-border bg-secondary text-muted-foreground cursor-not-allowed' 
-                          : 'border-primary text-primary hover:bg-primary hover:text-white'
-                      }`}
-                      id={`shop-cart-${product.id}`}
-                    >
-                      {product.isSoldOut ? 'Sold Out' : 'Add to Cart'}
-                    </button>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
+                )}
+                {!hasMore && products.length > 0 && (
+                  <p className="text-xs text-muted-foreground font-body">
+                    ✨ You've seen all {total} gifts
+                  </p>
+                )}
+              </div>
+            </>
           )}
         </div>
 

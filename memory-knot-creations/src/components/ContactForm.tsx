@@ -1,37 +1,31 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Send, Phone, Mail, MapPin } from 'lucide-react';
+import { Send, Mail, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
 import { SITE_CONFIG } from '@/config';
 
 
 const ContactForm = () => {
-  const [form, setForm] = useState({ name: '', email: '', phone: '', message: '', customization: '' });
+  const [form, setForm] = useState({ name: '', email: '', message: '', customization: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name.trim() || !form.email.trim() || !form.phone.trim()) {
-      toast.error('Please fill in your name, email and phone number');
+    if (!form.name.trim() || !form.email.trim()) {
+      toast.error('Please fill in your name and email');
       return;
     }
-
-    if (!/^\+?[\d\s-]{10,}$/.test(form.phone)) {
-      toast.error('Please enter a valid phone number');
-      return;
-    }
-
     
     setIsSubmitting(true);
     try {
       await api.submitContactForm({
         name: form.name,
         email: form.email,
-        message: `Phone: ${form.phone}\n\nMessage: ${form.message}\n\nCustomization: ${form.customization}`
+        message: `Message: ${form.message}\n\nCustomization: ${form.customization}`
       });
       toast.success('Thank you! We\'ll get back to you soon 💕');
-      setForm({ name: '', email: '', phone: '', message: '', customization: '' });
+      setForm({ name: '', email: '', message: '', customization: '' });
     } catch (error) {
       toast.error('Failed to send message. Please try again.');
     } finally {
@@ -57,16 +51,6 @@ const ContactForm = () => {
             </p>
 
             <div className="mt-8 space-y-5">
-              <div className="flex items-center gap-4">
-                <div className="w-11 h-11 rounded-xl bg-rose-light/50 flex items-center justify-center text-primary">
-                  <Phone size={18} />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-foreground">{SITE_CONFIG.phone}</p>
-                  <p className="text-xs text-muted-foreground">Mon-Sat, 10am-7pm</p>
-                </div>
-
-              </div>
               <div className="flex items-center gap-4">
                 <div className="w-11 h-11 rounded-xl bg-rose-light/50 flex items-center justify-center text-primary">
                   <Mail size={18} />
@@ -106,14 +90,6 @@ const ContactForm = () => {
               onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
               className="w-full px-5 py-3.5 rounded-xl bg-card border border-border focus:outline-none focus:ring-2 focus:ring-primary/30 font-body text-sm placeholder:text-muted-foreground transition-all"
               maxLength={100}
-            />
-            <input
-              type="tel"
-              placeholder="Phone Number *"
-              value={form.phone}
-              onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
-              className="w-full px-5 py-3.5 rounded-xl bg-card border border-border focus:outline-none focus:ring-2 focus:ring-primary/30 font-body text-sm placeholder:text-muted-foreground transition-all"
-              maxLength={15}
             />
             <textarea
               placeholder="Your Message"

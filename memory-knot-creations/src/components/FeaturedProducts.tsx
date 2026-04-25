@@ -21,8 +21,8 @@ const FeaturedProducts = () => {
   const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
 
   useEffect(() => {
-    api.getProducts().then(data => {
-      // Limit to first 8 for featured section if "featured" flag is not fully customized yet
+    api.getFeaturedProducts().then(data => {
+      // Show all featured products (up to 8)
       setProducts(data.slice(0, 8));
       setLoading(false);
     }).catch(err => {
