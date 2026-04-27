@@ -91,4 +91,36 @@ router.post("/", async (req, res) => {
   }
 });
 
+// Track order by trackingId or orderId
+router.get("/track/:query", async (req, res) => {
+  try {
+    const { query } = req.params;
+
+    const order = await prisma.order.findFirst({
+      where: {
+        OR: [
+          { id: query },
+          { trackingId: query }
+        ]
+      },
+      include: {
+        items: {
+          include: {
+            product: true
+          }
+        }
+      }
+    });
+
+    if (!order) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+
+    res.json(order);
+  } catch (error: any) {
+    console.error("Tracking Error:", error);
+    res.status(500).json({ error: "Failed to track order" });
+  }
+});
+
 export default router;

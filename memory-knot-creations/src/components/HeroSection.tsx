@@ -2,11 +2,11 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Heart } from 'lucide-react';
-import heroFamily from '@/assets/hero-family.png';
-import heroMarried from '@/assets/hero-married.png';
-import heroTeen from '@/assets/hero-teen.png';
-import heroSiblings from '@/assets/hero-siblings.png';
-import heroFriends from '@/assets/hero-friends.png';
+import heroFamily from '@/assets/hero-family-v3.png';
+import heroMarried from '@/assets/hero-married-v3.png';
+import heroTeen from '@/assets/hero-teen-v3.png';
+import heroSiblings from '@/assets/hero-siblings-v3.png';
+import heroFriends from '@/assets/hero-friends-v3.png';
 
 import logo from '@/assets/logo.jpg';
 

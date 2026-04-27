@@ -1,6 +1,7 @@
 import { Helmet } from 'react-helmet-async';
 import { Heart, Award, Users, Smile } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, useMotionValue, useTransform, animate, useInView } from 'framer-motion';
+import { useRef, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import CartDrawer from '@/components/CartDrawer';
@@ -8,11 +9,30 @@ import { SITE_CONFIG } from '@/config';
 import { Link } from 'react-router-dom';
 
 const stats = [
-  { icon: Users, value: '500+', label: 'Happy Families' },
-  { icon: Heart, value: '1000+', label: 'Gifts Delivered' },
-  { icon: Award, value: '5★', label: 'Average Rating' },
-  { icon: Smile, value: '100%', label: 'Satisfaction' },
+  { icon: Users, value: 500, suffix: '+', label: 'Happy Families' },
+  { icon: Heart, value: 1000, suffix: '+', label: 'Gifts Delivered' },
+  { icon: Award, value: 5, suffix: '★', label: 'Average Rating' },
+  { icon: Smile, value: 100, suffix: '%', label: 'Satisfaction' },
 ];
+
+const AnimatedCounter = ({ value, suffix }: { value: number; suffix: string }) => {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, margin: "-100px" });
+  const count = useMotionValue(0);
+  const rounded = useTransform(count, (latest) => Math.round(latest));
+
+  useEffect(() => {
+    if (isInView) {
+      animate(count, value, { duration: 2, ease: "easeOut" });
+    }
+  }, [isInView, value, count]);
+
+  return (
+    <p ref={ref} className="font-heading text-3xl font-bold text-foreground">
+      <motion.span>{rounded}</motion.span>{suffix}
+    </p>
+  );
+};
 
 const values = [
   {
@@ -119,7 +139,7 @@ const AboutPage = () => {
                   <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-3">
                     <s.icon size={22} className="text-primary" />
                   </div>
-                  <p className="font-heading text-3xl font-bold text-foreground">{s.value}</p>
+                  <AnimatedCounter value={s.value} suffix={s.suffix} />
                   <p className="text-xs text-muted-foreground font-body mt-1">{s.label}</p>
                 </div>
               ))}

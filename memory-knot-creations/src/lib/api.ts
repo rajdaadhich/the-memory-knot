@@ -41,6 +41,15 @@ export const api = {
     if (!res.ok) throw new Error("Failed to create order");
     return res.json();
   },
+  
+  trackOrder: async (query: string) => {
+    const res = await fetch(`${API_BASE_URL}/orders/track/${query}`);
+    if (!res.ok) {
+      if (res.status === 404) return null;
+      throw new Error("Failed to track order");
+    }
+    return res.json();
+  },
 
   submitContactForm: async (contactData: any) => {
     const res = await fetch(`${API_BASE_URL}/contact`, {
