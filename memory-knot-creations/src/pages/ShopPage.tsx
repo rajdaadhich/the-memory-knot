@@ -37,13 +37,36 @@ const ShopPage = () => {
   const [sortBy, setSortBy]                   = useState('popular');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [showFilters, setShowFilters]           = useState(false);
+  const [minPrice, setMinPrice]                 = useState(199);
+  const [maxPrice, setMaxPrice]                 = useState(200000);
 
-  // Debounced search
-  const [debouncedSearch, setDebouncedSearch] = useState('');
+  // Custom Sort Dropdown State
+  const [isSortOpen, setIsSortOpen]             = useState(false);
+  const sortRef                                 = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(searchQuery), 400);
+    const handleClickOutside = (event: MouseEvent) => {
+      if (sortRef.current && !sortRef.current.contains(event.target as Node)) {
+        setIsSortOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Debounced search and filters
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [debouncedMinPrice, setDebouncedMinPrice] = useState(199);
+  const [debouncedMaxPrice, setDebouncedMaxPrice] = useState(200000);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setDebouncedMinPrice(minPrice);
+      setDebouncedMaxPrice(maxPrice);
+    }, 400);
     return () => clearTimeout(timer);
-  }, [searchQuery]);
+  }, [searchQuery, minPrice, maxPrice]);
 
   // Reset + reload when filters change
   useEffect(() => {
@@ -51,7 +74,7 @@ const ShopPage = () => {
     setPage(1);
     setHasMore(true);
     setLoading(true);
-  }, [debouncedSearch, sortBy, selectedCategory]);
+  }, [debouncedSearch, sortBy, selectedCategory, debouncedMinPrice, debouncedMaxPrice]);
 
   // Fetch a page of products
   const fetchPage = useCallback(async (pageNum: number) => {
@@ -62,8 +85,20 @@ const ShopPage = () => {
         category: selectedCategory,
         search: debouncedSearch,
         sort: sortBy,
+        minPrice: debouncedMinPrice,
+        maxPrice: debouncedMaxPrice,
       });
-      setProducts(prev => pageNum === 1 ? data.products : [...prev, ...data.products]);
+      setProducts(prev => {
+        if (pageNum === 1) return data.products;
+        // Deduplicate to avoid React key warnings if StrictMode double-invokes
+        const newProducts = [...prev];
+        data.products.forEach((p: any) => {
+          if (!newProducts.find(existing => existing.id === p.id)) {
+            newProducts.push(p);
+          }
+        });
+        return newProducts;
+      });
       setTotal(data.total);
       setHasMore(data.hasMore);
     } catch {
@@ -72,7 +107,7 @@ const ShopPage = () => {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [debouncedSearch, sortBy, selectedCategory]);
+  }, [debouncedSearch, sortBy, selectedCategory, debouncedMinPrice, debouncedMaxPrice]);
 
   // Initial load and page changes
   useEffect(() => {
@@ -108,6 +143,8 @@ const ShopPage = () => {
     setSearchQuery('');
     setSelectedCategory('All');
     setSortBy('popular');
+    setMinPrice(199);
+    setMaxPrice(200000);
   };
 
   return (
@@ -122,7 +159,7 @@ const ShopPage = () => {
 
         {/* Page Header */}
         <div className="bg-white border-b border-border/60 py-8">
-          <div className="max-w-6xl mx-auto px-4 lg:px-8">
+          <div className="max-w-[1600px] mx-auto px-4 lg:px-8">
             <p className="text-xs text-muted-foreground font-body mb-1">
               <a href="/" className="hover:text-primary transition-colors">Home</a>
               {' '}/{' '}
@@ -135,7 +172,7 @@ const ShopPage = () => {
           </div>
         </div>
 
-        <div className="max-w-6xl mx-auto px-4 lg:px-8 py-8">
+        <div className="max-w-[1600px] mx-auto px-4 lg:px-8 py-8">
           {/* Search + Filter Bar */}
           <div className="flex flex-col sm:flex-row gap-3 mb-6">
             {/* Search */}
@@ -156,30 +193,51 @@ const ShopPage = () => {
               )}
             </div>
 
-            {/* Sort */}
-            <div className="relative">
-              <select
-                value={sortBy}
-                onChange={e => setSortBy(e.target.value)}
-                id="shop-sort"
-                className="appearance-none pl-4 pr-10 py-2.5 rounded-lg border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 font-body text-sm text-foreground min-w-[180px] cursor-pointer"
-              >
-                {SORT_OPTIONS.map(opt => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
-              <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-            </div>
+            {/* Sort & Filter Container */}
+            <div className="flex gap-3 w-full sm:w-auto">
+              {/* Sort */}
+              <div className="relative flex-1 sm:flex-none sm:w-auto" ref={sortRef}>
+                <button
+                  onClick={() => setIsSortOpen(!isSortOpen)}
+                  className="w-full sm:w-[180px] flex items-center justify-between pl-4 pr-3 py-2.5 rounded-lg border border-border bg-white hover:border-primary/50 transition-colors font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                >
+                  <span className="truncate">{SORT_OPTIONS.find(opt => opt.value === sortBy)?.label || 'Sort By'}</span>
+                  <ChevronDown size={16} className={`text-muted-foreground transition-transform duration-200 flex-shrink-0 ml-2 ${isSortOpen ? 'rotate-180' : ''}`} />
+                </button>
 
-            {/* Filter toggle */}
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              id="toggle-filters"
-              className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-border bg-white font-body text-sm hover:border-primary hover:text-primary transition-colors"
-            >
-              <SlidersHorizontal size={16} />
-              Filters
-            </button>
+                {/* Dropdown Menu */}
+                {isSortOpen && (
+                  <div className="absolute z-30 top-full mt-2 left-0 w-full bg-white border border-border rounded-xl shadow-elevated overflow-hidden py-1 origin-top animate-in fade-in zoom-in-95 duration-200">
+                    {SORT_OPTIONS.map(opt => (
+                      <button
+                        key={opt.value}
+                        onClick={() => {
+                          setSortBy(opt.value);
+                          setIsSortOpen(false);
+                        }}
+                        className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${
+                          sortBy === opt.value
+                            ? 'bg-primary/5 text-primary font-medium'
+                            : 'text-foreground/80 hover:bg-secondary hover:text-foreground'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Filter toggle */}
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                id="toggle-filters"
+                className="flex-1 sm:flex-none flex justify-center items-center gap-2 px-4 py-2.5 rounded-lg border border-border bg-white font-body text-sm hover:border-primary hover:text-primary transition-colors"
+              >
+                <SlidersHorizontal size={16} />
+                Filters
+              </button>
+            </div>
           </div>
 
           {/* Filter Panel */}
@@ -208,25 +266,44 @@ const ShopPage = () => {
                   ))}
                 </div>
               </div>
+
+              {/* Price Range Filter */}
+              <div className="mt-6">
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4 flex items-center justify-between">
+                  <span>Price Range</span>
+                  <span className="text-primary font-bold normal-case tracking-normal">₹{minPrice.toLocaleString()} - ₹{maxPrice.toLocaleString()}</span>
+                </label>
+                <div className="px-2 pt-2 pb-4">
+                  <div className="relative h-6 flex items-center">
+                    {/* Track background */}
+                    <div className="absolute w-full h-1.5 bg-secondary rounded-lg"></div>
+                    {/* Active Track */}
+                    <div 
+                      className="absolute h-1.5 bg-primary rounded-lg pointer-events-none"
+                      style={{
+                        left: `${((minPrice - 199) / (200000 - 199)) * 100}%`,
+                        right: `${100 - ((maxPrice - 199) / (200000 - 199)) * 100}%`
+                      }}
+                    ></div>
+                    <input 
+                      type="range" 
+                      min="199" max="200000" step="100"
+                      value={minPrice} 
+                      onChange={(e) => setMinPrice(Math.min(Number(e.target.value), maxPrice - 100))}
+                      className="absolute w-full h-1.5 appearance-none bg-transparent pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:cursor-pointer z-10" 
+                    />
+                    <input 
+                      type="range" 
+                      min="199" max="200000" step="100"
+                      value={maxPrice} 
+                      onChange={(e) => setMaxPrice(Math.max(Number(e.target.value), minPrice + 100))}
+                      className="absolute w-full h-1.5 appearance-none bg-transparent pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:cursor-pointer z-20" 
+                    />
+                  </div>
+                </div>
+              </div>
             </motion.div>
           )}
-
-          {/* Category chips (always visible) */}
-          <div className="flex gap-2 overflow-x-auto pb-1 mb-6 scrollbar-hide">
-            {CATEGORIES.map(cat => (
-              <button
-                key={cat}
-                onClick={() => setSelectedCategory(cat)}
-                className={`px-4 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
-                  selectedCategory === cat
-                    ? 'bg-primary text-white shadow-soft'
-                    : 'bg-white text-foreground/70 hover:bg-primary/10 hover:text-primary border border-border'
-                }`}
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
 
           {/* Products Grid */}
           {loading ? (

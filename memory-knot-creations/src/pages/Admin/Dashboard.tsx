@@ -314,7 +314,7 @@ const AdminDashboard = () => {
         </aside>
 
         {/* Content Area */}
-        <main className="flex-1 p-5 lg:p-8 max-w-6xl w-full">
+        <main className="flex-1 p-5 lg:p-8 max-w-[1600px] w-full">
           {/* Products View */}
           {activeTab === 'products' && (
             <div className="space-y-5">
@@ -423,7 +423,7 @@ const AdminDashboard = () => {
                 <p className="text-muted-foreground text-sm font-body mt-0.5">Review and manage your gift orders</p>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-5">
                 {data.orders.map((order) => (
                   <div key={order.id} className="bg-white border border-border/60 rounded-xl p-5 shadow-card hover:border-primary/20 transition-all">
                     <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-3">
@@ -510,9 +510,19 @@ const AdminDashboard = () => {
                         <p className="text-xs font-semibold text-muted-foreground uppercase flex items-center gap-1.5">
                           <Package size={11} /> Items
                         </p>
-                        <div className="space-y-1">
+                        <div className="space-y-2.5">
                           {order.items.map((item: any) => (
-                            <p key={item.id} className="text-sm text-foreground">• {item.product.name} (×{item.quantity})</p>
+                            <div key={item.id} className="flex items-center gap-2.5">
+                              <img 
+                                src={item.product.image || 'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=100&q=80'} 
+                                alt={item.product.name} 
+                                className="w-10 h-10 rounded object-cover border border-border/50" 
+                              />
+                              <div>
+                                <p className="text-sm text-foreground font-medium leading-tight line-clamp-1">{item.product.name}</p>
+                                <p className="text-xs text-muted-foreground mt-0.5">Qty: {item.quantity}</p>
+                              </div>
+                            </div>
                           ))}
                         </div>
                       </div>
@@ -537,7 +547,7 @@ const AdminDashboard = () => {
                 <p className="text-muted-foreground text-sm font-body mt-0.5">Messages from the contact form</p>
               </div>
 
-              <div className="grid md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
                 {data.contacts.map((c) => (
                   <div key={c.id} className="bg-white border border-border/60 rounded-xl p-5 shadow-card hover:border-primary/20 transition-all">
                     <div className="flex items-center justify-between mb-3">
@@ -578,13 +588,18 @@ const AdminDashboard = () => {
                   </div>
                 ))}
                 {data.contacts.length === 0 && (
-                  <div className="col-span-2 p-14 text-center text-muted-foreground bg-white rounded-xl border border-dashed border-border font-body">
+                  <div className="col-span-1 md:col-span-2 lg:col-span-3 xl:col-span-4 p-14 text-center text-muted-foreground bg-white rounded-xl border border-dashed border-border font-body">
                     <MessageSquare size={32} className="mx-auto mb-2 opacity-20" />
                     No messages received yet.
                   </div>
                 )}
               </div>
             </div>
+          )}
+
+          {/* Profile View */}
+          {activeTab === 'profile' && (
+            <AdminProfile profile={data.profile} token={token!} onRefresh={fetchData} />
           )}
         </main>
       </div>
@@ -826,10 +841,6 @@ const AdminDashboard = () => {
         </div>
       )}
 
-      {/* Profile Section */}
-      {activeTab === 'profile' && (
-        <AdminProfile profile={data.profile} token={token!} onRefresh={fetchData} />
-      )}
     </div>
   );
 };
@@ -1032,7 +1043,7 @@ const AdminProfile = ({ profile, token, onRefresh }: { profile: any; token: stri
   };
 
   return (
-    <div className="space-y-5 max-w-2xl">
+    <div className="space-y-5 w-full">
       <div>
         <h2 className="font-heading text-2xl font-bold text-foreground">My Profile</h2>
         <p className="text-muted-foreground text-sm font-body mt-0.5">Manage your account settings and security</p>

@@ -14,6 +14,8 @@ export const api = {
     category?: string;
     search?: string;
     sort?: string;
+    minPrice?: number;
+    maxPrice?: number;
   }) => {
     const query = new URLSearchParams();
     if (params.page)     query.set('page',     String(params.page));
@@ -21,6 +23,8 @@ export const api = {
     if (params.category && params.category !== 'All') query.set('category', params.category);
     if (params.search)   query.set('search',   params.search);
     if (params.sort && params.sort !== 'popular') query.set('sort', params.sort);
+    if (params.minPrice !== undefined) query.set('minPrice', String(params.minPrice));
+    if (params.maxPrice !== undefined) query.set('maxPrice', String(params.maxPrice));
     const res = await fetch(`${API_BASE_URL}/products?${query.toString()}`);
     if (!res.ok) throw new Error("Failed to fetch products");
     return res.json() as Promise<{ products: any[]; total: number; page: number; limit: number; hasMore: boolean }>;

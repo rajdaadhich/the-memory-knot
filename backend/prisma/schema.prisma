@@ -8,20 +8,15 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-
-
-
-
-
 model Admin {
   id               String    @id @default(cuid())
-  username         String    @unique
   email            String    @unique
   password         String
-  profileImage     String?
   resetToken       String?   @unique
   resetTokenExpiry DateTime?
   createdAt        DateTime  @default(now())
+  username         String    @unique
+  profileImage     String?
 }
 
 model Product {
@@ -32,32 +27,32 @@ model Product {
   image       String?
   category    String?
   featured    Boolean     @default(false)
-  isSoldOut   Boolean     @default(false)
   createdAt   DateTime    @default(now())
+  isSoldOut   Boolean     @default(false)
   orderItems  OrderItem[]
 }
 
 model Order {
-  id             String      @id @default(cuid())
-  customerName   String
-  customerEmail  String?
-  customerPhone  String
-  address        String
-  totalAmount    Float
-  status         String      @default("PENDING") // PENDING, APPROVED, COMPLETED, CANCELLED
-  trackingId     String?
-  createdAt      DateTime    @default(now())
-  items          OrderItem[]
+  id            String      @id @default(cuid())
+  customerName  String
+  customerEmail String?
+  customerPhone String
+  address       String
+  totalAmount   Float
+  status        String      @default("PENDING")
+  createdAt     DateTime    @default(now())
+  trackingId    String?
+  items         OrderItem[]
 }
 
 model OrderItem {
   id        String  @id @default(cuid())
   orderId   String
-  order     Order   @relation(fields: [orderId], references: [id])
   productId String
-  product   Product @relation(fields: [productId], references: [id])
   quantity  Int     @default(1)
   price     Float
+  order     Order   @relation(fields: [orderId], references: [id])
+  product   Product @relation(fields: [productId], references: [id])
 }
 
 model Contact {

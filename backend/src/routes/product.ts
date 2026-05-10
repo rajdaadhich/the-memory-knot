@@ -12,6 +12,8 @@ router.get("/", async (req, res) => {
     const category = req.query.category as string | undefined;
     const search   = req.query.search   as string | undefined;
     const sort     = req.query.sort     as string | undefined;
+    const minPrice = parseInt(req.query.minPrice as string);
+    const maxPrice = parseInt(req.query.maxPrice as string);
 
     // Build where clause
     const where: any = {};
@@ -23,6 +25,11 @@ router.get("/", async (req, res) => {
         { name:        { contains: search, mode: 'insensitive' } },
         { description: { contains: search, mode: 'insensitive' } },
       ];
+    }
+    if (!isNaN(minPrice) || !isNaN(maxPrice)) {
+      where.price = {};
+      if (!isNaN(minPrice)) where.price.gte = minPrice;
+      if (!isNaN(maxPrice)) where.price.lte = maxPrice;
     }
 
     // Build orderBy
