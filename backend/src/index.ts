@@ -63,12 +63,14 @@ import productRoutes from "./routes/product";
 import orderRoutes from "./routes/order";
 import contactRoutes from "./routes/contact";
 import adminRoutes from "./routes/admin";
+import userRoutes from "./routes/user";
 
 // Use Routes
 app.use("/api/products", productRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/contact", contactRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/user", userRoutes);
 
 // Global Error Handler
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

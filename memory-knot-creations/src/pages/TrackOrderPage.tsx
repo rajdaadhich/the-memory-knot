@@ -227,13 +227,13 @@ const TrackOrderPage = () => {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 + i * 0.1 }}
-                className="text-center space-y-3"
+                className="text-center space-y-3 bg-white p-6 rounded-2xl border border-border/40 shadow-soft hover:shadow-card transition-all duration-300 select-none"
               >
-                <div className="w-10 h-10 bg-white shadow-soft rounded-full flex items-center justify-center mx-auto text-primary">
+                <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center mx-auto text-primary">
                   <item.icon size={18} />
                 </div>
                 <h4 className="text-sm font-bold text-foreground">{item.title}</h4>
-                <p className="text-xs text-muted-foreground font-body leading-relaxed">{item.text}</p>
+                <p className="text-xs text-foreground/75 font-body leading-relaxed">{item.text}</p>
               </motion.div>
             ))}
           </div>

@@ -43,7 +43,7 @@ const HeroSection = () => {
         <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
 
           {/* Left — Text Content */}
-          <div className="order-2 lg:order-1">
+          <div className="order-1 lg:order-1">
             {/* Decorative leaf SVG */}
             <div className="mb-4 opacity-50">
               <svg width="60" height="20" viewBox="0 0 60 20" fill="none">
@@ -126,7 +126,7 @@ const HeroSection = () => {
             initial={{ opacity: 0, x: 30 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8, delay: 0.1 }}
-            className="order-1 lg:order-2 relative"
+            className="order-2 lg:order-2 relative"
           >
             {/* Preload all images to prevent glitching during the first cycle */}
             <div className="absolute w-0 h-0 opacity-0 pointer-events-none overflow-hidden" aria-hidden="true">

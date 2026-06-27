@@ -30,7 +30,7 @@ const Testimonials = () => {
         <div className="text-center mb-12">
           <div className="flex items-center justify-center gap-4 mb-3">
             <div className="h-px flex-1 max-w-24" style={{ background: 'linear-gradient(to right, transparent, hsl(38,60%,50%))' }} />
-            <h2 className="font-heading text-3xl lg:text-4xl font-bold text-foreground">Why Choose Us?</h2>
+            <h2 className="font-heading text-3xl lg:text-4xl font-bold text-foreground">What Our Customers Say</h2>
             <div className="h-px flex-1 max-w-24" style={{ background: 'linear-gradient(to left, transparent, hsl(38,60%,50%))' }} />
           </div>
           <p className="text-muted-foreground font-body text-sm">What Our Customers Say</p>

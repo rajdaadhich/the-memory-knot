@@ -102,13 +102,13 @@ const QuickViewModal = ({ product, onClose }: QuickViewModalProps) => {
                     {product.description || `This beautiful ${product.name} is handcrafted with premium materials to preserve your most precious memories. A perfect gift for any special occasion that your loved ones will cherish forever.`}
                   </p>
                   
-                  <div className="grid grid-cols-2 gap-4 pt-2">
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground font-body">
-                      <ShieldCheck size={14} className="text-primary" />
+                  <div className="flex flex-wrap gap-2.5 pt-2">
+                    <div className="flex items-center gap-1.5 px-3 py-1 bg-[#E8F5E9] text-[#2E7D32] rounded-full text-[11px] font-bold tracking-wider font-body border border-[#C8E6C9]/40 select-none">
+                      <ShieldCheck size={13} className="shrink-0" />
                       Quality Check Approved
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground font-body">
-                      <Heart size={14} className="text-primary" />
+                    <div className="flex items-center gap-1.5 px-3 py-1 bg-[#FDF2F4] text-[#C2185B] rounded-full text-[11px] font-bold tracking-wider font-body border border-[#F8BBD0]/40 select-none">
+                      <Heart size={13} className="shrink-0" />
                       Handmade with Love
                     </div>
                   </div>

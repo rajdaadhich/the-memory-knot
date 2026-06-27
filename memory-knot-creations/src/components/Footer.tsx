@@ -9,8 +9,10 @@ const Footer = () => {
       <div className="border-b border-border/60">
         <div className="max-w-6xl mx-auto px-4 lg:px-8 py-4">
           <div className="flex flex-wrap items-center justify-center gap-6 md:gap-10">
+            <span className="text-[11px] font-bold text-foreground/80 uppercase tracking-widest font-heading select-none">
+              Quick Links:
+            </span>
             {[
-              { label: 'Quick Links', href: '/' },
               { label: 'Track Order', href: '/track-order' },
               { label: 'About Us', href: '/about' },
               { label: 'FAQs', href: '/about#faqs' },

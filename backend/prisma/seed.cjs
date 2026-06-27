@@ -1,6 +1,44 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
+const PRODUCT_DESCRIPTIONS = {
+  // Hampers
+  'Luxury Velvet Hamper': 'Indulge your loved ones with this premium velvet box containing selection of artisan chocolates, a scented candle, a personalized photo frame, and a handwritten card.',
+  'Aesthetic Gift Box': 'A beautifully curated pastel gift box featuring aesthetic journals, custom ceramic mug, organic teas, and a mini dry flower bouquet.',
+  'Midnight Celebration Box': 'The ultimate late-night surprise box containing a premium mini chocolate cake, birthday/anniversary banners, fairy lights, and a customized photo frame.',
+  'Wellness Gift Kit': 'A refreshing self-care bundle with essential oils, handmade luxury soaps, a satin eye mask, and a customized motivational quote plaque.',
+  'Royal Gifting Suite': 'A majestic velvet hamper packed with traditional dry fruits, hand-painted clay diyas, a brass photo frame, and luxury perfumes.',
+  'Sparkling Hamper Box': 'Celebrate special achievements with this glittering box featuring a mocktail bottle, custom glasses, snacks, and a memory photo roll.',
+  // Frames
+  'Oak Memory Frame': 'Handcrafted premium natural oak wood frame with glass overlay. Includes a high-quality matte print of your favorite photo. Size: 8x10 inches.',
+  'Handcrafted Glass Frame': 'Elegant minimalist floating glass frame with brass borders. Perfect for pressed flowers and cherished photos. Size: 6x8 inches.',
+  'Minimalist Photo Wall': 'A gorgeous set of 3 matching black minimalist composite wood frames with pre-installed wall mounts. Perfect for grid collages.',
+  'Classic Oak Keepsake': 'Solid oak desktop frame featuring a deep shadow-box design to hold physical keepsakes alongside your photo.',
+  'Elegant Bordered Frame': 'A premium wide-bordered white frame with double matting, giving a gallery-quality display to your special moments.',
+  'Vintage Memory Stand': 'A rotating wooden block frame mounted on a vintage metal stand, holding up to 4 double-sided printed memory cards.',
+  // Collage
+  'Infinity Mosaic Collage': 'A breathtaking mosaic design compiled from 50 of your tiny photos to form one main gorgeous portrait. Size: 12x18 inches.',
+  'Heart-Shaped Memories': 'A beautiful arrangement of 30 of your favorite pictures shaped into a heart. Printed on premium archival semi-gloss paper.',
+  'Dreamy Photo Grid': 'A symmetrical 9-photo grid print with clean margins, housed in a modern black wooden frame with a glass panel.',
+  'Bond For Life Montage': 'A storytelling collage layout combining multiple photo sizes with personalized text quotes and special dates.',
+  'Echoes of Love Collage': 'A romantic design featuring soft overlays, watercolor background elements, and space for 12 couple photos.',
+  'Timeless Story Board': 'A chronological film-strip style photo collage capturing your journey from the beginning to now. Size: 8x24 inches.',
+  // Bouquet
+  'Memory Photo Bouquet': 'A stunning custom bouquet where beautiful hand-rolled silk roses are interweaved with 10 of your printed memory cards.',
+  'Eternal Flower Bouquet': 'A gorgeous dried flower arrangement featuring baby\'s breath and pampas grass, with custom photo tags attached.',
+  'Silk Rose Memory Wrap': 'A luxury flower wrap with 12 artificial red silk roses, fairy lights, and a personalized romantic letter scroll.',
+  'Lavender Photo Bloom': 'A soothing artificial lavender bouquet bundled with a vintage jute wrap and holding custom printed polaroids.',
+  'Innovated Memory Charm Burst': 'A premium bouquet containing chocolate truffles, paper roses, and hanging custom photo charms.',
+  'Fragrant Memory Wrap': 'A hand-tied bouquet of fragrant soap-roses that never fade, decorated with custom name tags and ribbons.',
+  // Miniatures
+  'Personalized Initial Letter': 'A custom wooden initial letter of your choice, filled with a beautiful miniature collage of your favorite photos.',
+  'Mini Love Keepsake': 'A tiny handcrafted glass bottle containing a rolled custom message scroll and a micro polaroid photo.',
+  'Aesthetic Photo Strip': 'A set of 3 vintage retro-style photo booth strips printed on thick textured cardstock with customized dates.',
+  'Handmade Pocket Charm': 'A double-sided miniature metal photo charm that fits in a pocket or hangs as a keepsake. Size: 1.5 inches.',
+  'Special Message Cube': 'A wooden folding cube that opens up to reveal 6 different hidden photos and messages in an accordion fold.',
+  'Dainty Photo Keyring': 'A premium genuine leather keyring sleeve that slides open to reveal a mini printed photo plate.'
+};
+
 async function main() {
   console.log('🧹 Cleaning existing data...');
   await prisma.orderItem.deleteMany();
@@ -144,12 +182,14 @@ async function main() {
     // Random price within range
     const price = Math.floor(Math.random() * (cat.priceRange[1] - cat.priceRange[0] + 1)) + cat.priceRange[0];
 
+    const description = PRODUCT_DESCRIPTIONS[titleBase] || cat.desc;
+
     await prisma.product.create({
       data: {
         name: title,
         price: price,
         image: `/images/${filename}`, // Public path for frontend
-        description: cat.desc,
+        description: description,
         category: cat.name,
         featured: i % 10 === 0, // Mark every 10th item as featured
         isSoldOut: false

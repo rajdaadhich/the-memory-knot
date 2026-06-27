@@ -63,7 +63,7 @@ export default {
         gold: "hsl(var(--gold))",
       },
       fontFamily: {
-        heading: ['Playfair Display', 'serif'],
+        heading: ['Cormorant Garamond', 'serif'],
         body: ['DM Sans', 'sans-serif'],
       },
       borderRadius: {

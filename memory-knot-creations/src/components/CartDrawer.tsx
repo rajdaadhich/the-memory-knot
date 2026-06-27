@@ -5,6 +5,7 @@ import { useCart } from '@/contexts/CartContext';
 import { SITE_CONFIG, API_BASE_URL } from '@/config';
 import { QRCodeSVG } from 'qrcode.react';
 import { Check } from 'lucide-react';
+import { toast } from 'sonner';
 import {
   Select,
   SelectContent,
@@ -32,6 +33,8 @@ const CartDrawer = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedApp, setSelectedApp] = useState<'paytm' | 'phonepe' | 'gpay'>('paytm');
   const [isQRMode, setIsQRMode] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [shippingInfo, setShippingInfo] = useState({
     name: '',
     email: '',
@@ -43,6 +46,51 @@ const CartDrawer = () => {
   // Set default shipping to Standard Delivery (SHIPPING_OPTIONS[0]) 
   // ensuring the select has a solid default value.
   const [selectedShipping, setSelectedShipping] = useState(SHIPPING_OPTIONS[0]);
+
+  // Detect mobile vs desktop to default QR code payments appropriately
+  useEffect(() => {
+    const checkMobile = () => {
+      const match = window.matchMedia('(pointer: coarse)').matches || 
+                    /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      setIsMobile(match);
+      setIsQRMode(!match); // Default to QR code on desktop, Swipe/Deep-links on mobile
+    };
+    checkMobile();
+  }, [isCartOpen]);
+
+  const validateForm = () => {
+    const errors: Record<string, string> = {};
+    if (!shippingInfo.name.trim()) errors.name = 'Full Name is required';
+    
+    if (!shippingInfo.email.trim()) {
+      errors.email = 'Email Address is required';
+    } else if (!/\S+@\S+\.\S+/.test(shippingInfo.email)) {
+      errors.email = 'Invalid email address format';
+    }
+    
+    if (!shippingInfo.phone.trim()) {
+      errors.phone = 'WhatsApp number is required';
+    } else if (!/^\d{10}$/.test(shippingInfo.phone.replace(/[^0-9]/g, ''))) {
+      errors.phone = 'Enter a valid 10-digit WhatsApp number';
+    }
+    
+    if (!shippingInfo.pincode.trim()) {
+      errors.pincode = 'Pincode is required';
+    } else if (!/^\d{6}$/.test(shippingInfo.pincode)) {
+      errors.pincode = 'Pincode must be 6 digits';
+    }
+    
+    if (!shippingInfo.address.trim()) errors.address = 'Complete Address is required';
+    
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleProceedToPayment = () => {
+    if (validateForm()) {
+      setCheckoutStep(3);
+    }
+  };
 
   // Calculate final total including shipping
   const finalTotal = totalPrice + selectedShipping.price;
@@ -92,6 +140,7 @@ const CartDrawer = () => {
         setCheckoutStep(1);
         setIsPaid(false);
         setIsWaitingForConfirmation(false);
+        setFormErrors({});
       }, 300);
     }
   }, [isCartOpen]);
@@ -99,6 +148,9 @@ const CartDrawer = () => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setShippingInfo(prev => ({ ...prev, [name]: value }));
+    if (formErrors[name]) {
+      setFormErrors(prev => ({ ...prev, [name]: '' }));
+    }
   };
 
   const handleFinalCheckout = async () => {
@@ -320,27 +372,6 @@ const CartDrawer = () => {
                             </SelectContent>
                           </Select>
                         </div>
-                        
-                        {/* Selected Option Explanation Details */}
-                        <div className="flex items-center gap-3 p-3 bg-secondary/30 rounded-lg border border-border/40">
-                           <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                              {selectedShipping.id === 'standard' && <Truck size={16} />}
-                              {selectedShipping.id === 'bulky' && <Package size={16} />}
-                              {selectedShipping.id === 'express' && <Zap size={16} />}
-                              {selectedShipping.id === 'air' && <Plane size={16} />}
-                              {selectedShipping.id === 'special' && <Star size={16} />}
-                           </div>
-                           <div className="flex-1">
-                             <p className="text-xs font-bold text-foreground">{selectedShipping.name}</p>
-                             <p className="text-[10px] text-muted-foreground leading-tight">{
-                                selectedShipping.id === 'standard' ? 'Standard delivery timeline via surface transport.' :
-                                selectedShipping.id === 'bulky' ? 'Specialized handling for large/heavy items.' :
-                                selectedShipping.id === 'express' ? 'Priority dispatch and delivery.' :
-                                selectedShipping.id === 'air' ? 'Premium expedited delivery via air cargo.' :
-                                'Custom delivery as mutually discussed. ₹1 only.'
-                             }</p>
-                           </div>
-                        </div>
                       </div>
                     </div>
                   ) : checkoutStep === 2 ? (
@@ -359,8 +390,11 @@ const CartDrawer = () => {
                               value={shippingInfo.name}
                               onChange={handleInputChange}
                               placeholder="Receiver's name"
-                              className="w-full px-4 py-3 rounded-xl border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm font-body shadow-sm"
+                              className={`w-full px-4 py-3 rounded-xl border bg-white focus:outline-none focus:ring-2 text-sm font-body shadow-sm ${
+                                formErrors.name ? 'border-red-500 focus:ring-red-200' : 'border-border focus:ring-primary/20'
+                              }`}
                             />
+                            {formErrors.name && <p className="text-[10px] text-red-500 ml-1 font-body">{formErrors.name}</p>}
                           </div>
                           <div className="space-y-1.5">
                             <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground ml-1">Email Address</label>
@@ -370,8 +404,11 @@ const CartDrawer = () => {
                               value={shippingInfo.email}
                               onChange={handleInputChange}
                               placeholder="For order updates"
-                              className="w-full px-4 py-3 rounded-xl border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm font-body shadow-sm"
+                              className={`w-full px-4 py-3 rounded-xl border bg-white focus:outline-none focus:ring-2 text-sm font-body shadow-sm ${
+                                formErrors.email ? 'border-red-500 focus:ring-red-200' : 'border-border focus:ring-primary/20'
+                              }`}
                             />
+                            {formErrors.email && <p className="text-[10px] text-red-500 ml-1 font-body">{formErrors.email}</p>}
                           </div>
                           <div className="space-y-1.5">
                             <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground ml-1">WhatsApp No.</label>
@@ -381,8 +418,11 @@ const CartDrawer = () => {
                               value={shippingInfo.phone}
                               onChange={handleInputChange}
                               placeholder="For delivery updates"
-                              className="w-full px-4 py-3 rounded-xl border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm font-body shadow-sm"
+                              className={`w-full px-4 py-3 rounded-xl border bg-white focus:outline-none focus:ring-2 text-sm font-body shadow-sm ${
+                                formErrors.phone ? 'border-red-500 focus:ring-red-200' : 'border-border focus:ring-primary/20'
+                              }`}
                             />
+                            {formErrors.phone && <p className="text-[10px] text-red-500 ml-1 font-body">{formErrors.phone}</p>}
                           </div>
                           <div className="space-y-1.5">
                             <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground ml-1">Pincode</label>
@@ -393,8 +433,11 @@ const CartDrawer = () => {
                               onChange={handleInputChange}
                               placeholder="6-digit Pincode"
                               maxLength={6}
-                              className="w-full px-4 py-3 rounded-xl border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm font-body shadow-sm"
+                              className={`w-full px-4 py-3 rounded-xl border bg-white focus:outline-none focus:ring-2 text-sm font-body shadow-sm ${
+                                formErrors.pincode ? 'border-red-500 focus:ring-red-200' : 'border-border focus:ring-primary/20'
+                              }`}
                             />
+                            {formErrors.pincode && <p className="text-[10px] text-red-500 ml-1 font-body">{formErrors.pincode}</p>}
                           </div>
                           <div className="space-y-1.5">
                             <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground ml-1">Complete Address</label>
@@ -404,8 +447,11 @@ const CartDrawer = () => {
                               onChange={handleInputChange}
                               rows={3}
                               placeholder="House no, Area, City"
-                              className="w-full px-4 py-3 rounded-xl border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm font-body shadow-sm resize-none"
+                              className={`w-full px-4 py-3 rounded-xl border bg-white focus:outline-none focus:ring-2 text-sm font-body shadow-sm resize-none ${
+                                formErrors.address ? 'border-red-500 focus:ring-red-200' : 'border-border focus:ring-primary/20'
+                              }`}
                             />
+                            {formErrors.address && <p className="text-[10px] text-red-500 ml-1 font-body">{formErrors.address}</p>}
                           </div>
                         </div>
                       </div>
@@ -561,12 +607,14 @@ const CartDrawer = () => {
                                     </Select>
                                   </div>
 
-                                  <button
-                                    onClick={() => setIsQRMode(true)}
-                                    className="w-full py-2 flex items-center justify-center gap-2 text-[10px] text-muted-foreground font-bold hover:text-primary transition-colors uppercase tracking-widest"
-                                  >
-                                    <LucideScanLine size={14} /> Pay using the QR code
-                                  </button>
+                                  {isMobile && (
+                                    <button
+                                      onClick={() => setIsQRMode(true)}
+                                      className="w-full py-2 flex items-center justify-center gap-2 text-[10px] text-muted-foreground font-bold hover:text-primary transition-colors uppercase tracking-widest"
+                                    >
+                                      <LucideScanLine size={14} /> Pay using the QR code
+                                    </button>
+                                  )}
                                 </motion.div>
                               ) : (
                                 <motion.div
@@ -575,21 +623,49 @@ const CartDrawer = () => {
                                   animate={{ opacity: 1, scale: 1 }}
                                   exit={{ opacity: 0, scale: 0.95 }}
                                   transition={{ duration: 0.2 }}
-                                  className="flex flex-col items-center justify-center h-full max-h-[300px]"
+                                  className="flex flex-col items-center justify-center h-full max-h-[420px] w-full px-4"
                                 >
-                                  <div className="p-3 bg-white rounded-[2rem] shadow-xl border border-border/40 relative group overflow-hidden mb-4">
+                                  <div className="p-3.5 bg-white rounded-[2rem] shadow-xl border border-border/40 relative group overflow-hidden mb-3">
                                     <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-                                    <QRCodeSVG value={upiUrl} size={160} />
+                                    <QRCodeSVG value={upiUrl} size={150} />
                                   </div>
                                   <div className="text-center space-y-1 mb-4">
                                     <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Scan with any UPI app</p>
+                                    <button 
+                                      onClick={() => {
+                                        navigator.clipboard.writeText(upiId);
+                                        toast.success("UPI ID Copied Successfully!");
+                                      }}
+                                      className="text-[11px] text-primary hover:underline font-bold mt-1 block mx-auto font-body"
+                                    >
+                                      Copy UPI ID: {upiId}
+                                    </button>
                                   </div>
+
                                   <button
-                                    onClick={() => setIsQRMode(false)}
-                                    className="px-6 py-2 bg-secondary/50 hover:bg-secondary rounded-full flex items-center gap-2 text-[10px] font-bold text-foreground transition-colors uppercase tracking-widest shrink-0"
+                                    onClick={handleFinalCheckout}
+                                    disabled={isSubmitting}
+                                    className="w-full py-3.5 bg-primary text-white rounded-xl font-bold font-heading shadow-soft flex items-center justify-center gap-2 hover:bg-primary/95 transition-all text-sm mb-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                   >
-                                    <ArrowLeft size={14} /> Back
+                                    {isSubmitting ? (
+                                      <>
+                                        <Loader2 className="animate-spin" size={16} /> Confirming...
+                                      </>
+                                    ) : (
+                                      <>
+                                        <ShieldCheck size={16} /> I Have Paid
+                                      </>
+                                    )}
                                   </button>
+
+                                  {isMobile && (
+                                    <button
+                                      onClick={() => setIsQRMode(false)}
+                                      className="px-5 py-1.5 bg-secondary/50 hover:bg-secondary rounded-full flex items-center gap-2 text-[10px] font-bold text-foreground transition-colors uppercase tracking-widest shrink-0 mt-2"
+                                    >
+                                      <ArrowLeft size={12} /> Back to App Link
+                                    </button>
+                                  )}
                                 </motion.div>
                               )}
                            </AnimatePresence>
@@ -622,9 +698,8 @@ const CartDrawer = () => {
 
                 {checkoutStep === 2 ? (
                   <button
-                    onClick={() => setCheckoutStep(3)}
-                    disabled={!shippingInfo.name || !shippingInfo.email || !shippingInfo.phone || !shippingInfo.address || !shippingInfo.pincode}
-                    className="w-full py-3.5 bg-primary text-white disabled:bg-muted disabled:text-muted-foreground rounded-xl font-bold font-body shadow-soft transition-all active:scale-[0.98] active:shadow-inner"
+                    onClick={handleProceedToPayment}
+                    className="w-full py-3.5 bg-primary text-white rounded-xl font-bold font-body shadow-soft transition-all hover:bg-primary/95 active:scale-[0.98] active:shadow-inner"
                   >
                     Proceed to Secure Payment
                   </button>

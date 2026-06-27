@@ -5,12 +5,16 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { HelmetProvider } from "react-helmet-async";
 import { CartProvider } from "@/contexts/CartContext";
+import { UserProvider } from "@/contexts/UserContext";
 
 import Index from "./pages/Index.tsx";
 import ShopPage from "./pages/ShopPage.tsx";
 import AboutPage from "./pages/AboutPage.tsx";
 import ContactPage from "./pages/ContactPage.tsx";
 import TrackOrderPage from "./pages/TrackOrderPage.tsx";
+import LoginPage from "./pages/LoginPage.tsx";
+import DashboardPage from "./pages/DashboardPage.tsx";
+import OrdersPage from "./pages/OrdersPage.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import AdminLogin from "./pages/Admin/Login.tsx";
 import AdminDashboard from "./pages/Admin/Dashboard.tsx";
@@ -27,24 +31,29 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <CartProvider>
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/shop" element={<ShopPage />} />
-              <Route path="/about" element={<AboutPage />} />
-              <Route path="/contact" element={<ContactPage />} />
-              <Route path="/track-order" element={<TrackOrderPage />} />
-              <Route path="/admin" element={<AdminLogin />} />
-              <Route path="/admin/login" element={<AdminLogin />} />
-              <Route path="/admin/forgot-password" element={<AdminForgotPassword />} />
-              <Route path="/admin/reset-password" element={<AdminResetPassword />} />
-              <Route path="/admin/dashboard" element={<AdminDashboard />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-            <CartDrawer />
-          </BrowserRouter>
-        </CartProvider>
+        <BrowserRouter>
+          <UserProvider>
+            <CartProvider>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/shop" element={<ShopPage />} />
+                <Route path="/about" element={<AboutPage />} />
+                <Route path="/contact" element={<ContactPage />} />
+                <Route path="/track-order" element={<TrackOrderPage />} />
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/dashboard" element={<DashboardPage />} />
+                <Route path="/orders" element={<OrdersPage />} />
+                <Route path="/admin" element={<AdminLogin />} />
+                <Route path="/admin/login" element={<AdminLogin />} />
+                <Route path="/admin/forgot-password" element={<AdminForgotPassword />} />
+                <Route path="/admin/reset-password" element={<AdminResetPassword />} />
+                <Route path="/admin/dashboard" element={<AdminDashboard />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+              <CartDrawer />
+            </CartProvider>
+          </UserProvider>
+        </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
   </HelmetProvider>

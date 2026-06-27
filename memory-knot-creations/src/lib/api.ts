@@ -194,5 +194,98 @@ export const api = {
     });
     if (!res.ok) throw new Error("Failed to update order");
     return res.json();
+  },
+
+  // Customer User Methods
+  userRegister: async (userData: any) => {
+    const res = await fetch(`${API_BASE_URL}/user/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(userData),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || "Failed to register account");
+    }
+    return res.json();
+  },
+
+  userLogin: async (credentials: any) => {
+    const res = await fetch(`${API_BASE_URL}/user/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(credentials),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || "Invalid email or password");
+    }
+    return res.json();
+  },
+
+  getUserProfile: async (token: string) => {
+    const res = await fetch(`${API_BASE_URL}/user/profile`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) throw new Error("Unauthorized");
+    return res.json();
+  },
+
+  updateUserProfile: async (token: string, profileData: any) => {
+    const res = await fetch(`${API_BASE_URL}/user/profile`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify(profileData),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || "Failed to update profile");
+    }
+    return res.json();
+  },
+
+  getUserOrders: async (token: string) => {
+    const res = await fetch(`${API_BASE_URL}/user/orders`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) throw new Error("Unauthorized");
+    return res.json();
+  },
+
+  getUserCart: async (token: string) => {
+    const res = await fetch(`${API_BASE_URL}/user/cart`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) throw new Error("Unauthorized");
+    return res.json();
+  },
+
+  syncUserCart: async (token: string, items: any[]) => {
+    const res = await fetch(`${API_BASE_URL}/user/cart/sync`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({ items }),
+    });
+    if (!res.ok) throw new Error("Failed to sync cart");
+    return res.json();
+  },
+
+  googleLogin: async (credential: string) => {
+    const res = await fetch(`${API_BASE_URL}/user/google-login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ credential }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || "Google sign in failed");
+    }
+    return res.json();
   }
 };

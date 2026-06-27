@@ -9,8 +9,8 @@ import { SITE_CONFIG } from '@/config';
 import { Link } from 'react-router-dom';
 
 const stats = [
-  { icon: Users, value: 500, suffix: '+', label: 'Happy Families' },
-  { icon: Heart, value: 1000, suffix: '+', label: 'Gifts Delivered' },
+  { icon: Users, value: 20, suffix: '+', label: 'Happy Families' },
+  { icon: Heart, value: 300, suffix: '+', label: 'Gifts Delivered' },
   { icon: Award, value: 5, suffix: '★', label: 'Average Rating' },
   { icon: Smile, value: 100, suffix: '%', label: 'Satisfaction' },
 ];
@@ -107,16 +107,29 @@ const AboutPage = () => {
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
             >
-              <h2 className="font-heading text-3xl font-bold text-foreground mb-6">How It All Started</h2>
-              <div className="space-y-4 text-foreground/70 font-body leading-relaxed">
-                <p>
-                  {SITE_CONFIG.name} was born out of a simple belief: that the moments we share with our loved ones deserve to be remembered — and celebrated — in the most beautiful way possible.
+              <h2 className="font-heading text-3xl font-bold text-foreground mb-6">Our Story</h2>
+              <div className="space-y-4 text-foreground/75 font-body leading-relaxed text-sm md:text-base">
+                <p className="font-medium text-foreground text-base">
+                  Some memories are too precious to be forgotten.
                 </p>
                 <p>
-                  We started as a small handcrafted studio in Jaipur, driven by a passion for creating personalized keepsakes that carry real emotion. Every frame, every box, every gift we create holds a story inside it.
+                  For the smiles that came without warning, the tears that meant love, and the memories we never want to let go of.
+                  They live quietly in our hearts—in handwritten notes, shared laughter, and small moments that mean everything.
                 </p>
                 <p>
-                  Today, we have had the privilege of delighting over 500 families across India — from anniversary surprises to birthday celebrations, proposals to everyday moments of love.
+                  <strong>“The Memory Knot”</strong> was born from the belief that memories are threads of emotion, meant to be tied with care and held close for a lifetime. Every gift we create is a knot, a promise to remember a moment, a feeling & a person.
+                </p>
+                <p>
+                  In a world that moves fast, we choose to slow down. Every handmade gift is a knot, carefully tied, never rushed, because memories deserve time, love, and intention.
+                </p>
+                <p>
+                  To create by hand, to pour love, patience, and emotion into every bouquet, card, scrapbook, and customized cake.
+                </p>
+                <p className="font-semibold text-primary italic text-sm md:text-base mt-6">
+                  Because a gift is never just a gift. It’s a memory tied with love. And once tied, it stays forever.
+                </p>
+                <p className="font-heading text-sm font-black tracking-widest text-foreground uppercase pt-4 border-t border-border/40 mt-6">
+                  THE MEMORY KNOT - BY PREKSHA
                 </p>
               </div>
               <Link

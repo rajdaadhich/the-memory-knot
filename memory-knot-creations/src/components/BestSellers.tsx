@@ -49,7 +49,7 @@ const BestSellers = () => {
           {loading ? (
             Array(3).fill(0).map((_, i) => (
               <div key={i} className="space-y-4">
-                <Skeleton className="aspect-[4/3] w-full rounded-xl" />
+                <Skeleton className="aspect-square w-full rounded-xl" />
                 <div className="space-y-2 px-2">
                   <Skeleton className="h-4 w-3/4" />
                   <Skeleton className="h-4 w-1/4" />
@@ -66,7 +66,7 @@ const BestSellers = () => {
                 transition={{ delay: i * 0.1 }}
                 className="group bg-white rounded-xl overflow-hidden shadow-card hover:shadow-elevated transition-all duration-400 border border-border/50"
               >
-                <div className="relative aspect-[4/3] overflow-hidden">
+                <div className="relative aspect-square overflow-hidden">
                   <img
                     src={product.image || 'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=800&q=80'}
                     alt={product.name}

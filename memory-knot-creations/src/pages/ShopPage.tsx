@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingBag, Eye, Search, SlidersHorizontal, X, ChevronDown, Loader2 } from 'lucide-react';
 import { Helmet } from 'react-helmet-async';
 import Navbar from '@/components/Navbar';
@@ -38,7 +38,34 @@ const ShopPage = () => {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [showFilters, setShowFilters]           = useState(false);
   const [minPrice, setMinPrice]                 = useState(199);
-  const [maxPrice, setMaxPrice]                 = useState(200000);
+  const [maxPrice, setMaxPrice]                 = useState(1000);
+
+  // Temporary drawer states (applied only on "Apply" button click)
+  const [tempCategory, setTempCategory]         = useState('All');
+  const [tempMinPrice, setTempMinPrice]         = useState(199);
+  const [tempMaxPrice, setTempMaxPrice]         = useState(1000);
+
+  const handleOpenFilters = () => {
+    setTempCategory(selectedCategory);
+    setTempMinPrice(minPrice);
+    setTempMaxPrice(maxPrice);
+    setShowFilters(true);
+  };
+
+  const handleApplyFilters = () => {
+    setSelectedCategory(tempCategory);
+    setMinPrice(tempMinPrice);
+    setMaxPrice(tempMaxPrice);
+    setShowFilters(false);
+  };
+
+  // Screen size check for mobile filter drawer direction
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Custom Sort Dropdown State
   const [isSortOpen, setIsSortOpen]             = useState(false);
@@ -57,7 +84,7 @@ const ShopPage = () => {
   // Debounced search and filters
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [debouncedMinPrice, setDebouncedMinPrice] = useState(199);
-  const [debouncedMaxPrice, setDebouncedMaxPrice] = useState(200000);
+  const [debouncedMaxPrice, setDebouncedMaxPrice] = useState(1000);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -142,9 +169,12 @@ const ShopPage = () => {
   const handleClearFilters = () => {
     setSearchQuery('');
     setSelectedCategory('All');
+    setTempCategory('All');
     setSortBy('popular');
     setMinPrice(199);
-    setMaxPrice(200000);
+    setTempMinPrice(199);
+    setMaxPrice(1000);
+    setTempMaxPrice(1000);
   };
 
   return (
@@ -157,22 +187,16 @@ const ShopPage = () => {
       <div className="min-h-screen bg-[#F8F3EE]">
         <Navbar />
 
-        {/* Page Header */}
-        <div className="bg-white border-b border-border/60 py-8">
-          <div className="max-w-[1600px] mx-auto px-4 lg:px-8">
-            <p className="text-xs text-muted-foreground font-body mb-1">
+        <div className="max-w-[1600px] mx-auto px-4 lg:px-8 pt-6 pb-10">
+          {/* Integrated Page Header */}
+          <div className="mb-5">
+            <p className="text-[10px] text-muted-foreground font-body uppercase tracking-wider mb-0.5">
               <a href="/" className="hover:text-primary transition-colors">Home</a>
               {' '}/{' '}
               <span className="text-foreground">Shop</span>
             </p>
-            <h1 className="font-heading text-3xl font-bold text-foreground">All Products</h1>
-            <p className="text-muted-foreground text-sm font-body mt-1">
-              {loading ? 'Loading...' : `${total} gift${total !== 1 ? 's' : ''} found`}
-            </p>
+            <h1 className="font-heading text-xl lg:text-2xl font-black text-foreground">All Products</h1>
           </div>
-        </div>
-
-        <div className="max-w-[1600px] mx-auto px-4 lg:px-8 py-8">
           {/* Search + Filter Bar */}
           <div className="flex flex-col sm:flex-row gap-3 mb-6">
             {/* Search */}
@@ -230,7 +254,7 @@ const ShopPage = () => {
 
               {/* Filter toggle */}
               <button
-                onClick={() => setShowFilters(!showFilters)}
+                onClick={() => handleOpenFilters()}
                 id="toggle-filters"
                 className="flex-1 sm:flex-none flex justify-center items-center gap-2 px-4 py-2.5 rounded-lg border border-border bg-white font-body text-sm hover:border-primary hover:text-primary transition-colors"
               >
@@ -240,74 +264,9 @@ const ShopPage = () => {
             </div>
           </div>
 
-          {/* Filter Panel */}
-          {showFilters && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-white rounded-xl border border-border p-5 mb-6"
-            >
-              <div>
-                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3 block">Category</label>
-                <div className="flex flex-wrap gap-2">
-                  {CATEGORIES.map(cat => (
-                    <button
-                      key={cat}
-                      onClick={() => setSelectedCategory(cat)}
-                      id={`category-${cat.toLowerCase()}`}
-                      className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                        selectedCategory === cat
-                          ? 'bg-primary text-white'
-                          : 'bg-secondary text-foreground/70 hover:bg-primary/10 hover:text-primary border border-border'
-                      }`}
-                    >
-                      {cat}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Price Range Filter */}
-              <div className="mt-6">
-                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4 flex items-center justify-between">
-                  <span>Price Range</span>
-                  <span className="text-primary font-bold normal-case tracking-normal">₹{minPrice.toLocaleString()} - ₹{maxPrice.toLocaleString()}</span>
-                </label>
-                <div className="px-2 pt-2 pb-4">
-                  <div className="relative h-6 flex items-center">
-                    {/* Track background */}
-                    <div className="absolute w-full h-1.5 bg-secondary rounded-lg"></div>
-                    {/* Active Track */}
-                    <div 
-                      className="absolute h-1.5 bg-primary rounded-lg pointer-events-none"
-                      style={{
-                        left: `${((minPrice - 199) / (200000 - 199)) * 100}%`,
-                        right: `${100 - ((maxPrice - 199) / (200000 - 199)) * 100}%`
-                      }}
-                    ></div>
-                    <input 
-                      type="range" 
-                      min="199" max="200000" step="100"
-                      value={minPrice} 
-                      onChange={(e) => setMinPrice(Math.min(Number(e.target.value), maxPrice - 100))}
-                      className="absolute w-full h-1.5 appearance-none bg-transparent pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:cursor-pointer z-10" 
-                    />
-                    <input 
-                      type="range" 
-                      min="199" max="200000" step="100"
-                      value={maxPrice} 
-                      onChange={(e) => setMaxPrice(Math.max(Number(e.target.value), minPrice + 100))}
-                      className="absolute w-full h-1.5 appearance-none bg-transparent pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:cursor-pointer z-20" 
-                    />
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          )}
-
           {/* Products Grid */}
           {loading ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 lg:gap-5">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 lg:gap-4">
               {Array(PAGE_LIMIT).fill(0).map((_, i) => (
                 <div key={i} className="space-y-3">
                   <Skeleton className="aspect-square w-full rounded-xl" />
@@ -327,7 +286,7 @@ const ShopPage = () => {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 lg:gap-5">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 lg:gap-4">
                 {products.map((product, i) => (
                   <motion.div
                     key={product.id}
@@ -354,7 +313,7 @@ const ShopPage = () => {
                           Featured
                         </span>
                       ) : null}
-                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 hidden lg:flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
                         <button
                           onClick={() => addItem({ id: product.id, name: product.name, price: product.price, image: product.image })}
                           disabled={product.isSoldOut}
@@ -415,6 +374,124 @@ const ShopPage = () => {
 
         <Footer />
         <QuickViewModal product={selectedProduct} onClose={() => setSelectedProduct(null)} />
+
+        {/* Filter Drawer */}
+        <AnimatePresence>
+          {showFilters && (
+            <div className={`fixed inset-0 z-[12000] flex ${isMobile ? 'justify-start' : 'justify-end'}`}>
+              {/* Backdrop */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setShowFilters(false)}
+                className="absolute inset-0 bg-black/40 backdrop-blur-xs"
+              />
+
+              {/* Drawer Content */}
+              <motion.div
+                initial={{ x: isMobile ? '-100%' : '100%' }}
+                animate={{ x: 0 }}
+                exit={{ x: isMobile ? '-100%' : '100%' }}
+                transition={{ type: 'tween', duration: 0.3 }}
+                className={`relative h-full w-full max-w-[360px] bg-[#FAF8F5] shadow-2xl flex flex-col z-10 ${isMobile ? 'border-r' : 'border-l'} border-border`}
+              >
+                {/* Header */}
+                <div className="p-6 border-b border-border/60 bg-white flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <SlidersHorizontal size={18} className="text-primary" />
+                    <h2 className="font-heading text-xl font-bold text-foreground">Filters</h2>
+                  </div>
+                  <button
+                    onClick={() => setShowFilters(false)}
+                    className="p-1 text-muted-foreground/60 hover:text-foreground transition-colors hover:bg-secondary/60 rounded-lg"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+
+                {/* Body */}
+                <div className="p-6 overflow-y-auto flex-1 space-y-8">
+                  {/* Category Selector */}
+                  <div>
+                    <h3 className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-3">Category</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {CATEGORIES.map(cat => (
+                        <button
+                          key={cat}
+                          onClick={() => setTempCategory(cat)}
+                          id={`category-${cat.toLowerCase()}`}
+                          className={`px-3.5 py-1.5 rounded-full text-xs font-semibold font-body transition-all border ${
+                            tempCategory === cat
+                              ? 'bg-primary text-white border-primary shadow-soft'
+                              : 'bg-white text-foreground/75 border-border/80 hover:border-primary/50 hover:text-primary'
+                          }`}
+                        >
+                          {cat}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Price Range Slider */}
+                  <div>
+                    <div className="flex justify-between items-center mb-3">
+                      <h3 className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Price Range</h3>
+                      <span className="text-xs font-bold text-primary font-body bg-primary/10 px-2.5 py-0.5 rounded-full">
+                        ₹{tempMinPrice} - ₹{tempMaxPrice}
+                      </span>
+                    </div>
+                    <div className="px-2 pt-2 pb-4 bg-white rounded-xl border border-border/40 p-4 shadow-sm">
+                      <div className="relative h-6 flex items-center">
+                        <div className="absolute w-full h-1.5 bg-secondary rounded-lg"></div>
+                        <div
+                          className="absolute h-1.5 bg-primary rounded-lg pointer-events-none"
+                          style={{
+                            left: `${((tempMinPrice - 199) / (1000 - 199)) * 100}%`,
+                            right: `${100 - ((tempMaxPrice - 199) / (1000 - 199)) * 100}%`
+                          }}
+                        ></div>
+                        <input
+                          type="range"
+                          min="199" max="1000" step="10"
+                          value={tempMinPrice}
+                          onChange={(e) => setTempMinPrice(Math.min(Number(e.target.value), tempMaxPrice - 50))}
+                          className="absolute w-full h-1.5 appearance-none bg-transparent pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:cursor-pointer z-10"
+                        />
+                        <input
+                          type="range"
+                          min="199" max="1000" step="10"
+                          value={tempMaxPrice}
+                          onChange={(e) => setTempMaxPrice(Math.max(Number(e.target.value), tempMinPrice + 50))}
+                          className="absolute w-full h-1.5 appearance-none bg-transparent pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:cursor-pointer z-20"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Footer */}
+                <div className="p-6 border-t border-border/60 bg-white flex gap-3">
+                  <button
+                    onClick={() => {
+                      handleClearFilters();
+                      setShowFilters(false);
+                    }}
+                    className="flex-1 py-3.5 border border-border/80 text-foreground font-body font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-secondary/50 active:scale-[0.98] transition-all"
+                  >
+                    Clear All
+                  </button>
+                  <button
+                    onClick={() => handleApplyFilters()}
+                    className="flex-1 py-3.5 bg-primary text-white font-body font-bold text-xs uppercase tracking-widest rounded-xl shadow-soft hover:bg-primary/95 active:scale-[0.98] transition-all"
+                  >
+                    Apply
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
       </div>
     </>
   );
