@@ -83,44 +83,54 @@ const QuickViewModal = ({ product, onClose }: QuickViewModalProps) => {
                 <X size={20} className="text-muted-foreground" />
               </button>
 
-              <div className="flex-1 space-y-6">
+              <div className="flex-1 space-y-4">
                 <div>
-                  <div className="flex items-center gap-2 mb-2">
+                  <div className="flex items-center gap-2 mb-1.5">
                     <div className="flex text-yellow-400">
-                      {[...Array(5)].map((_, i) => <Star key={i} size={12} fill="currentColor" />)}
+                      {[...Array(5)].map((_, i) => <Star key={i} size={11} fill="currentColor" />)}
                     </div>
                     <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Highly Rated</span>
                   </div>
                   <h2 className="font-heading text-2xl md:text-3xl font-bold text-foreground leading-tight">{product.name}</h2>
-                  <div className="flex items-center gap-4 mt-3">
+                  <div className="flex items-center gap-4 mt-2">
                     <span className="text-2xl font-bold text-primary">₹{product.price.toLocaleString()}</span>
                   </div>
+                  
+                  {/* Premium Size Badge */}
+                  {product.size && (
+                    <div className="mt-3 flex items-baseline gap-2 text-muted-foreground font-body">
+                      <span className="text-xs font-bold uppercase tracking-wider">Size:</span>
+                      <span className="text-primary font-heading text-xl md:text-2xl font-bold tracking-wide">
+                        {product.size.replace(/\s*\*\s*/g, ' × ').replace(/\s*[xX]\s*(?=\d)/g, ' × ')}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <p className="text-sm text-muted-foreground font-body leading-relaxed">
                     {product.description || `This beautiful ${product.name} is handcrafted with premium materials to preserve your most precious memories. A perfect gift for any special occasion that your loved ones will cherish forever.`}
                   </p>
                   
-                  <div className="flex flex-wrap gap-2.5 pt-2">
-                    <div className="flex items-center gap-1.5 px-3 py-1 bg-[#E8F5E9] text-[#2E7D32] rounded-full text-[11px] font-bold tracking-wider font-body border border-[#C8E6C9]/40 select-none">
-                      <ShieldCheck size={13} className="shrink-0" />
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 bg-[#E8F5E9] text-[#2E7D32] rounded-full text-[10px] font-bold tracking-wider font-body border border-[#C8E6C9]/40 select-none">
+                      <ShieldCheck size={12} className="shrink-0" />
                       Quality Check Approved
                     </div>
-                    <div className="flex items-center gap-1.5 px-3 py-1 bg-[#FDF2F4] text-[#C2185B] rounded-full text-[11px] font-bold tracking-wider font-body border border-[#F8BBD0]/40 select-none">
-                      <Heart size={13} className="shrink-0" />
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 bg-[#FDF2F4] text-[#C2185B] rounded-full text-[10px] font-bold tracking-wider font-body border border-[#F8BBD0]/40 select-none">
+                      <Heart size={12} className="shrink-0" />
                       Handmade with Love
                     </div>
                   </div>
                 </div>
 
-                <div className="pt-6 border-t border-border flex flex-col sm:flex-row gap-3">
+                <div className="pt-4 border-t border-border flex flex-col sm:flex-row gap-2.5">
                   <button
                     onClick={() => { addItem(product); onClose(); }}
                     disabled={product.isSoldOut}
-                    className="flex-1 btn-primary flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-1 btn-primary flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm py-3"
                   >
-                    <ShoppingBag size={18} />
+                    <ShoppingBag size={16} />
                     {product.isSoldOut ? 'Sold Out' : 'Add to Gift Box'}
                   </button>
                   <button
@@ -132,12 +142,12 @@ const QuickViewModal = ({ product, onClose }: QuickViewModalProps) => {
                         : 'border-border text-muted-foreground hover:text-primary hover:border-primary'
                     }`}
                   >
-                    {copied ? <Check size={20} /> : <Share2 size={20} />}
+                    {copied ? <Check size={18} /> : <Share2 size={18} />}
                   </button>
                 </div>
               </div>
               
-              <div className="mt-8 pt-4 border-t border-border/40 text-center">
+              <div className="mt-4 pt-3 border-t border-border/40 text-center">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">
                   Guaranteed safe checkout with UPI
                 </p>

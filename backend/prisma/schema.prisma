@@ -26,9 +26,13 @@ model Product {
   price       Float
   image       String?
   category    String?
+  subCategory String?
+  occasion    String?
+  giftFor     String?
   featured    Boolean     @default(false)
   createdAt   DateTime    @default(now())
   isSoldOut   Boolean     @default(false)
+  size        String?
   orderItems  OrderItem[]
   cartItems   CartItem[]
 }

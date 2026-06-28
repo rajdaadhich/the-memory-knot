@@ -330,7 +330,7 @@ router.patch("/orders/:id", verifyToken, async (req: any, res: any) => {
 // Product Management
 router.post("/products", verifyToken, async (req: any, res: any) => {
   try {
-    const { name, price, description, image, category, featured, isSoldOut } = req.body;
+    const { name, price, description, image, category, subCategory, occasion, giftFor, size, featured, isSoldOut } = req.body;
     
     if (!name || isNaN(parseFloat(price))) {
       return res.status(400).json({ error: "Product name and valid price are required" });
@@ -343,6 +343,10 @@ router.post("/products", verifyToken, async (req: any, res: any) => {
         description, 
         image, 
         category, 
+        subCategory,
+        occasion,
+        giftFor,
+        size,
         featured: Boolean(featured),
         isSoldOut: Boolean(isSoldOut)
       } 

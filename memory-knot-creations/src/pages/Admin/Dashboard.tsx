@@ -28,7 +28,25 @@ import {
 } from 'lucide-react';
 import { SITE_CONFIG } from '@/config';
 
-const CATEGORIES = ['Couples', 'Family', 'Friends', 'Anniversary', 'Birthday'];
+const CATEGORIES = ['Boquet', 'Hampers', 'Jewellery', 'Mini Boquet', 'Mini Hampers', 'Accesories', 'Personalised'];
+
+const SUBCATEGORIES_MAP: Record<string, string[]> = {
+  'Boquet': ['Polaroid boquets', 'jewellery boquets', 'hair accesories boquet', 'hotwheels boquet', 'choclate boquet'],
+  'Hampers': ['Premium Hampers', 'Self Care Hampers', 'Chocolate Hampers', 'Celebration Hampers'],
+  'Jewellery': ['earing', 'bracelet', 'anlet', 'necklace', 'ring'],
+  'Mini Boquet': ['Polaroid boquets', 'jewellery boquets', 'hair accesories boquet', 'hotwheels boquet', 'choclate boquet'],
+  'Mini Hampers': ['Polaroid boquets', 'jewellery boquets', 'hair accesories boquet', 'hotwheels boquet', 'choclate boquet'],
+  'Accesories': [],
+  'Personalised': ['magazines', 'personalised tshirts', 'mobile covers', 'mug / cups', 'keychains']
+};
+
+const OCCASIONS = [
+  'birthday', 'anniversiry', 'engagement', 'baby shower', 'proposal', 'mothers day', 'fathers day', 
+  'valentines week days', 'diwali', 'eid', 'rakhi', 'holi', 'christmas', 'sisters day', 
+  'boyfriends day', 'girlfriends day'
+];
+
+const GIFT_FOR_OPTIONS = ['male', 'female'];
 
 
 const AdminDashboard = () => {
@@ -48,6 +66,10 @@ const AdminDashboard = () => {
     description: '',
     image: '',
     category: '',
+    subCategory: '',
+    occasion: '',
+    giftFor: '',
+    size: '',
     featured: false,
     isSoldOut: false
   });
@@ -163,7 +185,7 @@ const AdminDashboard = () => {
       }
       setShowProductModal(false);
       setEditingProduct(null);
-      setNewProduct({ name: '', price: '', description: '', image: '', category: '', featured: false, isSoldOut: false });
+      setNewProduct({ name: '', price: '', description: '', image: '', category: '', subCategory: '', occasion: '', giftFor: '', size: '', featured: false, isSoldOut: false });
       fetchData();
     } catch {
       toast.error('Failed to save product');
@@ -327,7 +349,7 @@ const AdminDashboard = () => {
                   id="add-product-btn"
                   onClick={() => {
                     setEditingProduct(null);
-                    setNewProduct({ name: '', price: '', description: '', image: '', category: '', featured: false, isSoldOut: false });
+                    setNewProduct({ name: '', price: '', description: '', image: '', category: '', subCategory: '', occasion: '', giftFor: '', size: '', featured: false, isSoldOut: false });
                     setShowProductModal(true);
                   }}
                   className="bg-primary text-white px-4 py-2.5 rounded-lg font-medium font-body flex items-center gap-2 hover:bg-primary/90 shadow-soft text-sm"
@@ -382,6 +404,10 @@ const AdminDashboard = () => {
                                   description: p.description || '',
                                   image: p.image || '',
                                   category: p.category || '',
+                                  subCategory: p.subCategory || '',
+                                  occasion: p.occasion || '',
+                                  giftFor: p.giftFor || '',
+                                  size: p.size || '',
                                   featured: p.featured,
                                   isSoldOut: p.isSoldOut || false
                                 });
@@ -640,24 +666,103 @@ const AdminDashboard = () => {
                     className="w-full p-3 rounded-lg border border-border bg-background outline-none focus:ring-2 focus:ring-primary/20 font-body text-sm"
                     value={newProduct.price}
                     onChange={e => setNewProduct({...newProduct, price: e.target.value})}
+                    onWheel={e => e.currentTarget.blur()}
                     placeholder="1499"
                   />
                 </div>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Category</label>
-                <select
-                  required
-                  className="w-full p-3 rounded-lg border border-border bg-background outline-none focus:ring-2 focus:ring-primary/20 font-body text-sm cursor-pointer"
-                  value={newProduct.category}
-                  onChange={e => setNewProduct({...newProduct, category: e.target.value})}
-                >
-                  <option value="" disabled>Select a category</option>
-                  {CATEGORIES.map(cat => (
-                    <option key={cat} value={cat}>{cat}</option>
-                  ))}
-                </select>
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Category</label>
+                  <select
+                    required
+                    className="w-full p-3 rounded-lg border border-border bg-background outline-none focus:ring-2 focus:ring-primary/20 font-body text-sm cursor-pointer"
+                    value={newProduct.category}
+                    onChange={e => {
+                      const cat = e.target.value;
+                      const subs = SUBCATEGORIES_MAP[cat] || [];
+                      setNewProduct({
+                        ...newProduct,
+                        category: cat,
+                        subCategory: subs.length > 0 ? subs[0] : ''
+                      });
+                    }}
+                  >
+                    <option value="" disabled>Select a category</option>
+                    {CATEGORIES.map(cat => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {newProduct.category && SUBCATEGORIES_MAP[newProduct.category]?.length > 0 ? (
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Type / Sub-Category</label>
+                    <select
+                      className="w-full p-3 rounded-lg border border-border bg-background outline-none focus:ring-2 focus:ring-primary/20 font-body text-sm cursor-pointer"
+                      value={newProduct.subCategory}
+                      onChange={e => setNewProduct({...newProduct, subCategory: e.target.value})}
+                    >
+                      {SUBCATEGORIES_MAP[newProduct.category].map(sub => (
+                        <option key={sub} value={sub}>{sub}</option>
+                      ))}
+                    </select>
+                  </div>
+                ) : (
+                  <div className="space-y-1.5 opacity-40">
+                    <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Type / Sub-Category</label>
+                    <input
+                      disabled
+                      placeholder="No types for this category"
+                      className="w-full p-3 rounded-lg border border-border bg-background outline-none font-body text-sm cursor-not-allowed"
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div className="grid md:grid-cols-3 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Occasion</label>
+                  <select
+                    className="w-full p-3 rounded-lg border border-border bg-background outline-none focus:ring-2 focus:ring-primary/20 font-body text-sm cursor-pointer"
+                    value={newProduct.occasion}
+                    onChange={e => setNewProduct({...newProduct, occasion: e.target.value})}
+                  >
+                    <option value="">All / Generic Occasion</option>
+                    {OCCASIONS.map(occ => (
+                      <option key={occ} value={occ}>{occ}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Gift For</label>
+                  <select
+                    className="w-full p-3 rounded-lg border border-border bg-background outline-none focus:ring-2 focus:ring-primary/20 font-body text-sm cursor-pointer"
+                    value={newProduct.giftFor}
+                    onChange={e => setNewProduct({...newProduct, giftFor: e.target.value})}
+                  >
+                    <option value="">All / Unisex</option>
+                    {GIFT_FOR_OPTIONS.map(gf => (
+                      <option key={gf} value={gf}>{gf}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Size</label>
+                  <input
+                    type="text"
+                    className="w-full p-3 rounded-lg border border-border bg-background outline-none focus:ring-2 focus:ring-primary/20 font-body text-sm"
+                    value={newProduct.size}
+                    onChange={e => setNewProduct({...newProduct, size: e.target.value})}
+                    placeholder="e.g. 8x10 inches"
+                  />
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    Tip: Use <code className="bg-secondary px-1 py-0.5 rounded font-mono font-bold">*</code> or <code className="bg-secondary px-1 py-0.5 rounded font-mono font-bold">x</code> (e.g., 8*10 or 8x10). It automatically displays as a premium <code className="bg-secondary px-1 py-0.5 rounded font-mono font-bold">8 × 10</code> on the website!
+                  </p>
+                </div>
               </div>
 
               <div className="space-y-2">

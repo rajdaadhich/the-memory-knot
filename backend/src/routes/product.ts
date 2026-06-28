@@ -6,30 +6,77 @@ const router = express.Router();
 // Get products with pagination + filtering
 router.get("/", async (req, res) => {
   try {
-    const page     = Math.max(1, parseInt(req.query.page  as string) || 1);
-    const limit    = Math.min(50, parseInt(req.query.limit as string) || 12);
-    const skip     = (page - 1) * limit;
-    const category = req.query.category as string | undefined;
-    const search   = req.query.search   as string | undefined;
-    const sort     = req.query.sort     as string | undefined;
-    const minPrice = parseInt(req.query.minPrice as string);
-    const maxPrice = parseInt(req.query.maxPrice as string);
+    const page        = Math.max(1, parseInt(req.query.page  as string) || 1);
+    const limit       = Math.min(50, parseInt(req.query.limit as string) || 12);
+    const skip        = (page - 1) * limit;
+    const category    = req.query.category as string | undefined;
+    const subCategory = req.query.subCategory as string | undefined;
+    const occasion    = req.query.occasion as string | undefined;
+    const giftFor     = req.query.giftFor as string | undefined;
+    const search      = req.query.search   as string | undefined;
+    const sort        = req.query.sort     as string | undefined;
+    const minPrice    = parseInt(req.query.minPrice as string);
+    const maxPrice    = parseInt(req.query.maxPrice as string);
 
-    // Build where clause
+    // Build where clause with support for multi-select (comma-separated values)
     const where: any = {};
+    const andClauses: any[] = [];
+
     if (category && category !== 'All') {
-      where.category = { contains: category, mode: 'insensitive' };
+      andClauses.push({ category: { contains: category, mode: 'insensitive' } });
     }
+
+    if (subCategory && subCategory !== 'All') {
+      const subCategories = subCategory.split(',').map(s => s.trim()).filter(Boolean);
+      if (subCategories.length > 0) {
+        andClauses.push({
+          OR: subCategories.map(s => ({
+            subCategory: { contains: s, mode: 'insensitive' }
+          }))
+        });
+      }
+    }
+
+    if (occasion && occasion !== 'All') {
+      const occasions = occasion.split(',').map(s => s.trim()).filter(Boolean);
+      if (occasions.length > 0) {
+        andClauses.push({
+          OR: occasions.map(o => ({
+            occasion: { contains: o, mode: 'insensitive' }
+          }))
+        });
+      }
+    }
+
+    if (giftFor && giftFor !== 'All') {
+      const giftFors = giftFor.split(',').map(s => s.trim()).filter(Boolean);
+      if (giftFors.length > 0) {
+        andClauses.push({
+          OR: giftFors.map(g => ({
+            giftFor: { contains: g, mode: 'insensitive' }
+          }))
+        });
+      }
+    }
+
     if (search) {
-      where.OR = [
-        { name:        { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } },
-      ];
+      andClauses.push({
+        OR: [
+          { name:        { contains: search, mode: 'insensitive' } },
+          { description: { contains: search, mode: 'insensitive' } },
+        ]
+      });
     }
+
     if (!isNaN(minPrice) || !isNaN(maxPrice)) {
-      where.price = {};
-      if (!isNaN(minPrice)) where.price.gte = minPrice;
-      if (!isNaN(maxPrice)) where.price.lte = maxPrice;
+      const priceFilter: any = {};
+      if (!isNaN(minPrice)) priceFilter.gte = minPrice;
+      if (!isNaN(maxPrice)) priceFilter.lte = maxPrice;
+      andClauses.push({ price: priceFilter });
+    }
+
+    if (andClauses.length > 0) {
+      where.AND = andClauses;
     }
 
     // Build orderBy

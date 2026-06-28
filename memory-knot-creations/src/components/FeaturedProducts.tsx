@@ -69,7 +69,8 @@ const FeaturedProducts = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.05 }}
-              className="group bg-card rounded-2xl overflow-hidden shadow-card hover:shadow-elevated transition-all duration-500"
+              className="group bg-card rounded-2xl overflow-hidden shadow-card hover:shadow-elevated transition-all duration-500 cursor-pointer"
+              onClick={() => setSelectedProduct(product)}
             >
               <div className="relative aspect-square overflow-hidden">
                 <img
@@ -91,7 +92,7 @@ const FeaturedProducts = () => {
                 ) : null}
                 <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/10 transition-colors duration-300 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
                   <button
-                    onClick={() => addItem({ id: product.id, name: product.name, price: product.price, image: product.image })}
+                    onClick={(e) => { e.stopPropagation(); addItem({ id: product.id, name: product.name, price: product.price, image: product.image }); }}
                     disabled={product.isSoldOut}
                     className={`w-10 h-10 rounded-full flex items-center justify-center shadow-soft transition-transform ${product.isSoldOut ? 'bg-muted text-muted-foreground cursor-not-allowed opacity-70' : 'bg-primary text-primary-foreground hover:scale-110'}`}
                     aria-label="Add to cart"
@@ -99,7 +100,7 @@ const FeaturedProducts = () => {
                     <ShoppingBag size={16} />
                   </button>
                   <button
-                    onClick={() => setSelectedProduct(product)}
+                    onClick={(e) => { e.stopPropagation(); setSelectedProduct(product); }}
                     className="w-10 h-10 rounded-full bg-card text-foreground flex items-center justify-center shadow-soft hover:scale-110 transition-transform"
                     aria-label="View details"
                   >
@@ -114,7 +115,7 @@ const FeaturedProducts = () => {
                 <div className="flex items-center justify-between mt-2">
                   <span className="text-primary font-bold">₹{product.price.toLocaleString()}</span>
                   <button
-                    onClick={() => addItem({ id: product.id, name: product.name, price: product.price, image: product.image })}
+                    onClick={(e) => { e.stopPropagation(); addItem({ id: product.id, name: product.name, price: product.price, image: product.image }); }}
                     disabled={product.isSoldOut}
                     className={`text-xs font-medium transition-colors lg:hidden ${
                       product.isSoldOut ? 'text-muted-foreground cursor-not-allowed' : 'text-muted-foreground hover:text-primary'

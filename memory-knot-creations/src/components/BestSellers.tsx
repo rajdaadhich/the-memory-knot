@@ -64,7 +64,8 @@ const BestSellers = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
-                className="group bg-white rounded-xl overflow-hidden shadow-card hover:shadow-elevated transition-all duration-400 border border-border/50"
+                className="group bg-white rounded-xl overflow-hidden shadow-card hover:shadow-elevated transition-all duration-400 border border-border/50 cursor-pointer"
+                onClick={() => setSelectedProduct(product)}
               >
                 <div className="relative aspect-square overflow-hidden">
                   <img
@@ -88,7 +89,7 @@ const BestSellers = () => {
                   {/* Hover overlay */}
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
                     <button
-                      onClick={() => addItem({ id: product.id, name: product.name, price: product.price, image: product.image })}
+                      onClick={(e) => { e.stopPropagation(); addItem({ id: product.id, name: product.name, price: product.price, image: product.image }); }}
                       disabled={product.isSoldOut}
                       className={`w-10 h-10 rounded-full flex items-center justify-center shadow-soft transition-transform ${product.isSoldOut ? 'bg-muted text-muted-foreground cursor-not-allowed opacity-70' : 'bg-primary text-white hover:scale-110'}`}
                       aria-label="Add to cart"
@@ -97,7 +98,7 @@ const BestSellers = () => {
                       <ShoppingBag size={16} />
                     </button>
                     <button
-                      onClick={() => setSelectedProduct(product)}
+                      onClick={(e) => { e.stopPropagation(); setSelectedProduct(product); }}
                       className="w-10 h-10 rounded-full bg-white text-foreground flex items-center justify-center shadow-soft hover:scale-110 transition-transform"
                       aria-label="Quick view"
                     >
@@ -111,7 +112,7 @@ const BestSellers = () => {
                   <div className="flex items-center justify-between mt-2">
                     <span className="text-primary font-bold text-lg">₹{product.price.toLocaleString()}</span>
                     <button
-                      onClick={() => addItem({ id: product.id, name: product.name, price: product.price, image: product.image })}
+                      onClick={(e) => { e.stopPropagation(); addItem({ id: product.id, name: product.name, price: product.price, image: product.image }); }}
                       disabled={product.isSoldOut}
                       className={`text-xs px-3 py-1 rounded font-medium transition-colors border ${
                         product.isSoldOut 

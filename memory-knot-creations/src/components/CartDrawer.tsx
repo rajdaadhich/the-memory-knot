@@ -46,6 +46,8 @@ const CartDrawer = () => {
   // Set default shipping to Standard Delivery (SHIPPING_OPTIONS[0]) 
   // ensuring the select has a solid default value.
   const [selectedShipping, setSelectedShipping] = useState(SHIPPING_OPTIONS[0]);
+  const [addGiftBag, setAddGiftBag] = useState(false);
+  const [countryCode, setCountryCode] = useState('+91');
 
   // Detect mobile vs desktop to default QR code payments appropriately
   useEffect(() => {
@@ -93,7 +95,7 @@ const CartDrawer = () => {
   };
 
   // Calculate final total including shipping
-  const finalTotal = totalPrice + selectedShipping.price;
+  const finalTotal = totalPrice + selectedShipping.price + (addGiftBag ? 40 : 0);
   
   // Device detection for smart deep linking
   const isIOS = typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent);
@@ -141,6 +143,8 @@ const CartDrawer = () => {
         setIsPaid(false);
         setIsWaitingForConfirmation(false);
         setFormErrors({});
+        setAddGiftBag(false);
+        setCountryCode('+91');
       }, 300);
     }
   }, [isCartOpen]);
@@ -163,8 +167,8 @@ const CartDrawer = () => {
         body: JSON.stringify({
           customerName: shippingInfo.name,
           customerEmail: shippingInfo.email,
-          customerPhone: shippingInfo.phone,
-          address: `${shippingInfo.address}${shippingInfo.pincode ? `, Pincode: ${shippingInfo.pincode}` : ''}`,
+          customerPhone: `${countryCode} ${shippingInfo.phone}`,
+          address: `${shippingInfo.address}${shippingInfo.pincode ? `, Pincode: ${shippingInfo.pincode}` : ''}${addGiftBag ? ' [PREMIUM GIFT BAG REQUESTED (+₹40)]' : ''}`,
           totalAmount: finalTotal,
           items: items.map(item => ({
             id: item.id,
@@ -207,7 +211,7 @@ const CartDrawer = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0, pointerEvents: 'none' }}
-          className="fixed inset-0 z-[9999] flex justify-end overflow-hidden focus:outline-none"
+          className="fixed inset-0 z-[50000] flex justify-end overflow-hidden focus:outline-none"
         >
           {/* Backdrop */}
           <motion.div
@@ -231,19 +235,19 @@ const CartDrawer = () => {
             {/* Header */}
             <div className="flex items-center justify-between p-5 border-b border-border/60 bg-[#F8F3EE]">
               <div className="flex items-center gap-3">
-                {checkoutStep > 1 ? (
-                  <button 
-                    onClick={() => setCheckoutStep(checkoutStep - 1)}
-                    className="w-10 h-10 -ml-2 flex items-center justify-center hover:bg-black/5 rounded-full transition-colors text-foreground"
-                    aria-label="Go back"
-                  >
-                    <ArrowLeft size={20} />
-                  </button>
-                ) : (
-                  <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center text-primary shrink-0">
-                    <ShoppingBag size={20} />
-                  </div>
-                )}
+                <button 
+                  onClick={() => {
+                    if (checkoutStep > 1) {
+                      setCheckoutStep(checkoutStep - 1);
+                    } else {
+                      setIsCartOpen(false);
+                    }
+                  }}
+                  className="w-10 h-10 -ml-2 flex items-center justify-center hover:bg-black/5 rounded-full transition-colors text-foreground shrink-0"
+                  aria-label="Go back"
+                >
+                  <ArrowLeft size={20} />
+                </button>
                 <div>
                   <h2 className="font-heading text-lg font-bold text-foreground leading-tight">
                     {checkoutStep === 1 ? 'Your Gift Box' : checkoutStep === 2 ? 'Delivery Address' : 'Secure Payment'}
@@ -412,16 +416,34 @@ const CartDrawer = () => {
                           </div>
                           <div className="space-y-1.5">
                             <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground ml-1">WhatsApp No.</label>
-                            <input
-                              type="tel"
-                              name="phone"
-                              value={shippingInfo.phone}
-                              onChange={handleInputChange}
-                              placeholder="For delivery updates"
-                              className={`w-full px-4 py-3 rounded-xl border bg-white focus:outline-none focus:ring-2 text-sm font-body shadow-sm ${
-                                formErrors.phone ? 'border-red-500 focus:ring-red-200' : 'border-border focus:ring-primary/20'
-                              }`}
-                            />
+                            <div className="flex gap-2">
+                              <Select value={countryCode} onValueChange={setCountryCode}>
+                                <SelectTrigger className="w-[96px] h-12 bg-white border-border focus:ring-primary/20 rounded-xl px-2.5 text-sm font-semibold shadow-sm focus:ring-2 outline-none">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent className="z-[12000] bg-white rounded-xl shadow-xl border-border/40 max-h-60 overflow-y-auto">
+                                  <SelectItem value="+91">🇮🇳 +91</SelectItem>
+                                  <SelectItem value="+1">🇺🇸 +1</SelectItem>
+                                  <SelectItem value="+44">🇬🇧 +44</SelectItem>
+                                  <SelectItem value="+971">🇦🇪 +971</SelectItem>
+                                  <SelectItem value="+61">🇦🇺 +61</SelectItem>
+                                  <SelectItem value="+65">🇸🇬 +65</SelectItem>
+                                  <SelectItem value="+49">🇩🇪 +49</SelectItem>
+                                  <SelectItem value="+966">🇸🇦 +966</SelectItem>
+                                  <SelectItem value="+968">🇴🇲 +968</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <input
+                                type="tel"
+                                name="phone"
+                                value={shippingInfo.phone}
+                                onChange={handleInputChange}
+                                placeholder="WhatsApp number"
+                                className={`flex-1 h-12 px-4 rounded-xl border bg-white focus:outline-none focus:ring-2 text-sm font-body shadow-sm ${
+                                  formErrors.phone ? 'border-red-500 focus:ring-red-200' : 'border-border focus:ring-primary/20'
+                                }`}
+                              />
+                            </div>
                             {formErrors.phone && <p className="text-[10px] text-red-500 ml-1 font-body">{formErrors.phone}</p>}
                           </div>
                           <div className="space-y-1.5">
@@ -681,11 +703,41 @@ const CartDrawer = () => {
             {/* Footer Summary (Only in Cart/Shipping Step) */}
             {items.length > 0 && !isPaid && (
               <div className="p-5 border-t border-border/60 space-y-4 bg-white">
+                {/* Premium Gift Bag Option (shown on first page) */}
+                {checkoutStep === 1 && (
+                  <div className="flex items-center justify-between p-3 rounded-xl border border-primary/20 bg-primary/5">
+                    <div className="flex items-center gap-2.5">
+                      <div className="p-1.5 bg-primary/10 rounded-lg text-primary">
+                        <ShoppingBag size={16} />
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-foreground">Add Premium Gift Bag</p>
+                        <p className="text-[10px] text-muted-foreground font-body">Beautiful wrap with custom cards</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs font-bold text-primary">₹40</span>
+                      <input
+                        type="checkbox"
+                        checked={addGiftBag}
+                        onChange={(e) => setAddGiftBag(e.target.checked)}
+                        className="w-4 h-4 rounded text-primary border-border focus:ring-primary/20 accent-primary cursor-pointer"
+                      />
+                    </div>
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm text-muted-foreground font-body">
                     <span>Products Subtotal</span>
                     <span className="font-semibold text-foreground">₹{totalPrice.toLocaleString()}</span>
                   </div>
+                  {addGiftBag && (
+                    <div className="flex justify-between text-sm text-muted-foreground font-body">
+                      <span>Premium Gift Bag</span>
+                      <span className="font-semibold text-foreground">+ ₹40</span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-sm text-muted-foreground font-body">
                     <span>Delivery ({selectedShipping.name})</span>
                     <span className="font-semibold text-foreground border border-primary/20 bg-primary/5 px-2 rounded-md">+ ₹{selectedShipping.price}</span>
@@ -701,7 +753,7 @@ const CartDrawer = () => {
                     onClick={handleProceedToPayment}
                     className="w-full py-3.5 bg-primary text-white rounded-xl font-bold font-body shadow-soft transition-all hover:bg-primary/95 active:scale-[0.98] active:shadow-inner"
                   >
-                    Proceed to Secure Payment
+                    Proceed to Payment
                   </button>
                 ) : checkoutStep === 1 ? (
                   <button

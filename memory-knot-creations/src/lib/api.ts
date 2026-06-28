@@ -12,6 +12,9 @@ export const api = {
     page?: number;
     limit?: number;
     category?: string;
+    subCategory?: string;
+    occasion?: string;
+    giftFor?: string;
     search?: string;
     sort?: string;
     minPrice?: number;
@@ -21,6 +24,9 @@ export const api = {
     if (params.page)     query.set('page',     String(params.page));
     if (params.limit)    query.set('limit',    String(params.limit));
     if (params.category && params.category !== 'All') query.set('category', params.category);
+    if (params.subCategory && params.subCategory !== 'All') query.set('subCategory', params.subCategory);
+    if (params.occasion && params.occasion !== 'All') query.set('occasion', params.occasion);
+    if (params.giftFor && params.giftFor !== 'All') query.set('giftFor', params.giftFor);
     if (params.search)   query.set('search',   params.search);
     if (params.sort && params.sort !== 'popular') query.set('sort', params.sort);
     if (params.minPrice !== undefined) query.set('minPrice', String(params.minPrice));
