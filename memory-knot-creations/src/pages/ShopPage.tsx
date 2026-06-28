@@ -11,6 +11,15 @@ import { useCart } from '@/contexts/CartContext';
 import { api } from '@/lib/api';
 import { SITE_CONFIG } from '@/config';
 
+// Import local category card assets
+import bouquetImg from '@/assets/product-bouquet.png';
+import hamperImg from '@/assets/product-hamper.jpg';
+import jewelleryImg from '@/assets/product-jewellery.png';
+import miniBouquetImg from '@/assets/product-mini-bouquet.png';
+import miniHamperImg from '@/assets/product-memory-box.jpg';
+import accessoriesImg from '@/assets/product-accessories.png';
+import personalisedImg from '@/assets/product-scrapbook.jpg';
+
 const SORT_OPTIONS = [
   { value: 'popular',    label: 'Most Popular' },
   { value: 'price-asc',  label: 'Price: Low to High' },
@@ -23,43 +32,43 @@ const CATEGORY_CARDS = [
     id: 'Boquet',
     title: 'Bouquets',
     description: 'Beautiful Polaroid, jewellery, and chocolate arrangements wrapping your memories.',
-    image: 'https://images.unsplash.com/photo-1526047932273-341f2a7631f9?w=800&q=80',
+    image: bouquetImg,
   },
   {
     id: 'Hampers',
     title: 'Gift Hampers',
     description: 'Beautifully curated collection of sweets, keepsakes, and products styled with love.',
-    image: 'https://images.unsplash.com/photo-1608228088998-57828365d486?w=800&q=80',
+    image: hamperImg,
   },
   {
     id: 'Jewellery',
     title: 'Jewellery',
     description: 'Premium handcrafted earrings, bracelets, anklets, and elegant accessories.',
-    image: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=800&q=80',
+    image: jewelleryImg,
   },
   {
     id: 'Mini Boquet',
     title: 'Mini Bouquets',
     description: 'Aesthetic smaller-sized arrangements packed with details and love.',
-    image: 'https://images.unsplash.com/photo-1518199266791-5375a83190b7?w=800&q=80',
+    image: miniBouquetImg,
   },
   {
     id: 'Mini Hampers',
     title: 'Mini Hampers',
     description: 'Cute, budget-friendly curated gift sets that deliver huge smiles.',
-    image: 'https://images.unsplash.com/photo-1607344645866-009c320c5ab8?w=800&q=80',
+    image: miniHamperImg,
   },
   {
     id: 'Accesories',
     title: 'Accessories',
     description: 'Adorable matching clips, pins, and custom details to elevate any outfit.',
-    image: 'https://images.unsplash.com/photo-1590156546746-c58d2f15fecb?w=800&q=80',
+    image: accessoriesImg,
   },
   {
     id: 'Personalised',
     title: 'Personalised',
     description: 'Custom photo journals, printed t-shirts, mobile covers, keychains, and mugs.',
-    image: 'https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?w=800&q=80',
+    image: personalisedImg,
   }
 ];
 
