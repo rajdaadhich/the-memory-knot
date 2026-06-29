@@ -45,7 +45,7 @@ const BestSellers = () => {
         </div>
 
         {/* Products Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-8">
           {loading ? (
             Array(3).fill(0).map((_, i) => (
               <div key={i} className="space-y-4">
@@ -67,7 +67,7 @@ const BestSellers = () => {
                 className="group bg-white rounded-xl overflow-hidden shadow-card hover:shadow-elevated transition-all duration-400 border border-border/50 cursor-pointer"
                 onClick={() => setSelectedProduct(product)}
               >
-                <div className="relative aspect-square overflow-hidden">
+                <div className="relative aspect-[4/3] sm:aspect-square overflow-hidden">
                   <img
                     src={product.image || 'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=800&q=80'}
                     alt={product.name}
@@ -107,21 +107,21 @@ const BestSellers = () => {
                   </div>
                 </div>
 
-                <div className="p-4">
-                  <h3 className="font-heading font-semibold text-foreground truncate text-base">{product.name}</h3>
-                  <div className="flex items-center justify-between mt-2">
-                    <span className="text-primary font-bold text-lg">₹{product.price.toLocaleString()}</span>
+                <div className="p-2.5 sm:p-4">
+                  <h3 className="font-heading font-semibold text-foreground truncate text-xs sm:text-base">{product.name}</h3>
+                  <div className="flex items-center justify-between mt-1.5 sm:mt-2">
+                    <span className="text-primary font-bold text-sm sm:text-lg">₹{product.price.toLocaleString()}</span>
                     <button
                       onClick={(e) => { e.stopPropagation(); addItem({ id: product.id, name: product.name, price: product.price, image: product.image }); }}
                       disabled={product.isSoldOut}
-                      className={`text-xs px-3 py-1 rounded font-medium transition-colors border ${
+                      className={`text-[10px] sm:text-xs px-2 sm:px-3 py-1 rounded font-medium transition-colors border ${
                         product.isSoldOut 
                           ? 'border-border bg-secondary text-muted-foreground cursor-not-allowed' 
                           : 'border-primary text-primary hover:bg-primary hover:text-white'
                       }`}
                       id={`add-to-cart-mobile-${product.id}`}
                     >
-                      {product.isSoldOut ? 'Sold Out' : 'Add to Cart'}
+                      {product.isSoldOut ? 'Sold Out' : 'Add'}
                     </button>
                   </div>
                 </div>

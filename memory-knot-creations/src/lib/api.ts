@@ -35,6 +35,12 @@ export const api = {
     if (!res.ok) throw new Error("Failed to fetch products");
     return res.json() as Promise<{ products: any[]; total: number; page: number; limit: number; hasMore: boolean }>;
   },
+
+  getProductDetails: async (id: string) => {
+    const res = await fetch(`${API_BASE_URL}/products/${id}`);
+    if (!res.ok) throw new Error("Failed to fetch product details");
+    return res.json();
+  },
   
   getFeaturedProducts: async () => {
     const res = await fetch(`${API_BASE_URL}/products/featured`);
@@ -58,6 +64,35 @@ export const api = {
       if (res.status === 404) return null;
       throw new Error("Failed to track order");
     }
+    return res.json();
+  },
+
+  getOrderDetails: async (orderId: string) => {
+    const res = await fetch(`${API_BASE_URL}/orders/${orderId}`);
+    if (!res.ok) throw new Error("Failed to fetch order details");
+    return res.json();
+  },
+
+  submitCustomization: async (orderId: string, items: any[]) => {
+    const res = await fetch(`${API_BASE_URL}/orders/${orderId}/customization`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ items }),
+    });
+    if (!res.ok) throw new Error("Failed to submit customizations");
+    return res.json();
+  },
+
+  updateOrderItemStatus: async (itemId: string, status: string, adminToken: string) => {
+    const res = await fetch(`${API_BASE_URL}/admin/orders/items/${itemId}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${adminToken}`
+      },
+      body: JSON.stringify({ status })
+    });
+    if (!res.ok) throw new Error("Failed to update item status");
     return res.json();
   },
 
@@ -293,5 +328,21 @@ export const api = {
       throw new Error(data.error || "Google sign in failed");
     }
     return res.json();
-  }
+  },
+
+  bulkCreateAdminProducts: async (token: string, products: any[]) => {
+    const res = await fetch(`${API_BASE_URL}/admin/products/bulk`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ products }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || "Failed to bulk create products");
+    }
+    return res.json();
+  },
 };

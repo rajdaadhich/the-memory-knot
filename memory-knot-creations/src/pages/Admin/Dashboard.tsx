@@ -2,7 +2,9 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ReactCrop, { centerCrop, makeAspectCrop, Crop, PixelCrop, type Size } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
+import * as XLSX from 'xlsx';
 import { api } from '@/lib/api';
+import { jsPDF } from 'jspdf';
 import { toast } from 'sonner';
 import {
   Package,
@@ -24,7 +26,15 @@ import {
   ImageIcon,
   Upload,
   Link,
-  Truck
+  Truck,
+  ExternalLink,
+  Calendar,
+  FileSpreadsheet,
+  Download,
+  ZoomIn,
+  ChevronLeft,
+  ChevronRight,
+  PanelLeftClose
 } from 'lucide-react';
 import { SITE_CONFIG } from '@/config';
 
@@ -78,6 +88,10 @@ const AdminDashboard = () => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [dragOver, setDragOver] = useState(false);
   const [imageInputMode, setImageInputMode] = useState<'upload' | 'url'>('upload');
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [bulkUploading, setBulkUploading] = useState(false);
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const navigate = useNavigate();
   const token = localStorage.getItem('admin_token');
@@ -88,7 +102,23 @@ const AdminDashboard = () => {
       return;
     }
     fetchData();
-  }, [token]);
+
+    let interval: NodeJS.Timeout;
+    if (activeTab === 'orders') {
+      interval = setInterval(async () => {
+        try {
+          const orders = await api.getAdminOrders(token!);
+          setData(prev => ({ ...prev, orders }));
+        } catch (error) {
+          console.error("Polling orders failed:", error);
+        }
+      }, 5000);
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [token, activeTab]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -221,6 +251,91 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleUpdateOrderItemStatus = async (itemId: string, status: string) => {
+    try {
+      await api.updateOrderItemStatus(itemId, status, token!);
+      toast.success("Item status updated successfully!");
+      
+      // Update local state immediately
+      setData(prev => {
+        const updatedOrders = prev.orders.map(order => {
+          const updatedItems = order.items.map((item: any) => {
+            if (item.id === itemId) {
+              return { ...item, status };
+            }
+            return item;
+          });
+          return { ...order, items: updatedItems };
+        });
+        return { ...prev, orders: updatedOrders };
+      });
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to update item status");
+    }
+  };
+
+  const handleDownloadAssetPDF = async (order: any) => {
+    const images: string[] = [];
+    order.items?.forEach((item: any) => {
+      if (item.customImage) {
+        let urls: string[] = [];
+        if (item.customImage.startsWith('[')) {
+          try {
+            urls = JSON.parse(item.customImage);
+          } catch {
+            urls = [item.customImage];
+          }
+        } else {
+          urls = [item.customImage];
+        }
+        images.push(...urls);
+      }
+    });
+
+    if (images.length === 0) {
+      toast.error("No custom images uploaded for this order.");
+      return;
+    }
+
+    const toastId = toast.loading("Compiling high-resolution PDF... Please wait.");
+
+    try {
+      const doc = new jsPDF();
+      
+      for (let i = 0; i < images.length; i++) {
+        const imageUrl = images[i];
+        const res = await fetch(imageUrl);
+        const blob = await res.blob();
+        
+        const base64Data = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+
+        let format = "JPEG";
+        if (imageUrl.toLowerCase().endsWith(".png")) format = "PNG";
+
+        if (i > 0) {
+          doc.addPage();
+        }
+
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+
+        doc.addImage(base64Data, format, 10, 10, pageWidth - 20, pageHeight - 20, undefined, 'NONE');
+      }
+
+      doc.save(`Order-${order.id.slice(0, 8)}-Photos.pdf`);
+      toast.success("PDF Downloaded successfully!", { id: toastId });
+    } catch (err) {
+      console.error("PDF Compilation failed:", err);
+      toast.error("Failed to generate PDF.", { id: toastId });
+    }
+  };
+
   const handleDeleteContact = async (id: string) => {
     if (!confirm('Are you sure you want to delete this message?')) return;
     try {
@@ -241,8 +356,62 @@ const AdminDashboard = () => {
     </div>
   );
 
+  // Bulk Excel Upload Handler
+  const handleBulkExcelUpload = async (file: File) => {
+    if (!file) return;
+    setBulkUploading(true);
+    try {
+      const data = await file.arrayBuffer();
+      const workbook = XLSX.read(data);
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rows: any[] = XLSX.utils.sheet_to_json(sheet);
+
+      if (rows.length === 0) {
+        toast.error('Excel file is empty or has no valid rows');
+        return;
+      }
+
+      const result = await api.bulkCreateAdminProducts(token!, rows);
+      toast.success(`✅ ${result.count} products uploaded successfully!`);
+      fetchData();
+    } catch (err: any) {
+      toast.error(err.message || 'Bulk upload failed');
+    } finally {
+      setBulkUploading(false);
+    }
+  };
+
+  // Download Excel Template
+  const handleDownloadTemplate = () => {
+    const headers = [['name','price','description','image','category','subCategory','occasion','giftFor','size','featured','isSoldOut']];
+    const exampleRow = [['Example Bouquet','999','A beautiful polaroid bouquet','https://example.com/img.jpg','Boquet','Polaroid boquets','birthday','female','Medium','false','false']];
+    const ws = XLSX.utils.aoa_to_sheet([...headers, ...exampleRow]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Products');
+    XLSX.writeFile(wb, 'memory-knot-products-template.xlsx');
+    toast.success('Template downloaded!');
+  };
+
   return (
     <div className="min-h-screen bg-[#F8F3EE] flex flex-col">
+      {/* Lightbox for profile image */}
+      {lightboxImage && (
+        <div
+          className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm"
+          onClick={() => setLightboxImage(null)}
+        >
+          <button className="absolute top-4 right-4 text-white hover:text-white/70" onClick={() => setLightboxImage(null)}>
+            <X size={28} />
+          </button>
+          <img
+            src={lightboxImage}
+            alt="Profile"
+            className="max-w-[90vw] max-h-[90vh] rounded-2xl shadow-2xl object-contain"
+            onClick={e => e.stopPropagation()}
+          />
+        </div>
+      )}
+
       {/* Header */}
       <header className="bg-white border-b border-border/60 px-4 md:px-6 py-3.5 flex items-center justify-between sticky top-0 z-30 shadow-sm">
         <div className="flex items-center gap-3">
@@ -260,20 +429,13 @@ const AdminDashboard = () => {
             </div>
           </div>
         </div>
-
-        <div className="flex items-center gap-4">
-          {data.profile?.profileImage && (
-            <img src={data.profile.profileImage} alt="Admin" className="w-8 h-8 rounded-full object-cover hidden sm:block border border-border" />
-          )}
-          <button
-            onClick={handleLogout}
-            id="admin-logout"
-            className="flex items-center gap-2 px-3 md:px-4 py-2 rounded-lg hover:bg-secondary transition-colors text-xs md:text-sm font-medium text-foreground/70 hover:text-primary border border-border/60"
-          >
-            <LogOut size={15} />
-            <span className="hidden sm:inline">Logout</span>
-          </button>
-        </div>
+        {/* Mobile logout in header */}
+        <button
+          onClick={handleLogout}
+          className="lg:hidden flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-secondary transition-colors text-xs font-medium text-foreground/70 hover:text-primary border border-border/60"
+        >
+          <LogOut size={15} />
+        </button>
       </header>
 
       {/* Mobile Drawer Overlay */}
@@ -314,25 +476,105 @@ const AdminDashboard = () => {
 
       <div className="flex flex-1">
         {/* Sidebar (Desktop) */}
-        <aside className="w-60 bg-white border-r border-border/60 p-4 hidden lg:flex flex-col gap-2 h-full sticky top-[61px]" style={{ height: 'calc(100vh - 61px)' }}>
-          {/* Stats summary */}
-          <div className="grid grid-cols-3 gap-2 mb-4">
-            {[
-              { label: 'Products', value: data.products.length, icon: Package },
-              { label: 'Orders', value: data.orders.length, icon: ShoppingBag },
-              { label: 'Messages', value: data.contacts.length, icon: MessageSquare },
-            ].map(s => (
-              <div key={s.label} className="bg-[#F8F3EE] rounded-lg p-2 text-center">
-                <p className="font-bold text-foreground text-lg">{s.value}</p>
-                <p className="text-[9px] text-muted-foreground font-body">{s.label}</p>
+        <aside
+          className={`bg-white border-r border-border/60 hidden lg:flex flex-col h-full sticky top-[61px] transition-all duration-300 overflow-hidden ${
+            sidebarCollapsed ? 'w-16 p-2' : 'w-60 p-4'
+          }`}
+          style={{ height: 'calc(100vh - 61px)' }}
+        >
+          {/* Collapse Toggle Button */}
+          <button
+            onClick={() => setSidebarCollapsed(v => !v)}
+            className={`flex items-center justify-center w-8 h-8 rounded-lg hover:bg-[#F8F3EE] transition-colors text-muted-foreground hover:text-foreground mb-3 ${
+              sidebarCollapsed ? 'mx-auto' : 'ml-auto'
+            }`}
+            title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            {sidebarCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+          </button>
+
+          {!sidebarCollapsed && (
+            <>
+              {/* Admin Avatar */}
+              {data.profile?.profileImage ? (
+                <button
+                  onClick={() => setLightboxImage(data.profile.profileImage)}
+                  className="flex items-center gap-3 mb-3 p-2 rounded-xl hover:bg-[#F8F3EE] transition-colors group w-full text-left"
+                  title="Click to view profile photo"
+                >
+                  <div className="relative flex-shrink-0">
+                    <img src={data.profile.profileImage} alt="Admin" className="w-10 h-10 rounded-full object-cover border-2 border-primary/20" />
+                    <div className="absolute inset-0 rounded-full bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <ZoomIn size={14} className="text-white" />
+                    </div>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-foreground truncate">{data.profile.username}</p>
+                    <p className="text-[10px] text-muted-foreground">Administrator</p>
+                  </div>
+                </button>
+              ) : (
+                <div className="flex items-center gap-3 mb-3 p-2">
+                  <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
+                    <User size={18} className="text-muted-foreground" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">{data.profile?.username || 'Admin'}</p>
+                    <p className="text-[10px] text-muted-foreground">Administrator</p>
+                  </div>
+                </div>
+              )}
+
+              <div className="border-t border-border/40 pt-3 mb-1" />
+
+              {/* Stats summary */}
+              <div className="grid grid-cols-3 gap-2 mb-4">
+                {[
+                  { label: 'Products', value: data.products.length, icon: Package },
+                  { label: 'Orders', value: data.orders.length, icon: ShoppingBag },
+                  { label: 'Messages', value: data.contacts.length, icon: MessageSquare },
+                ].map(s => (
+                  <div key={s.label} className="bg-[#F8F3EE] rounded-lg p-2 text-center">
+                    <p className="font-bold text-foreground text-lg">{s.value}</p>
+                    <p className="text-[9px] text-muted-foreground font-body">{s.label}</p>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </>
+          )}
+
+          {/* Collapsed avatar */}
+          {sidebarCollapsed && data.profile?.profileImage && (
+            <button
+              onClick={() => setLightboxImage(data.profile.profileImage)}
+              className="w-9 h-9 rounded-full overflow-hidden mx-auto mb-3 border-2 border-primary/20 flex-shrink-0"
+              title="View profile photo"
+            >
+              <img src={data.profile.profileImage} alt="Admin" className="w-full h-full object-cover" />
+            </button>
+          )}
+
           <NavItems
             activeTab={activeTab}
             setActiveTab={setActiveTab}
             counts={{ products: data.products.length, orders: data.orders.length, contacts: data.contacts.length }}
+            collapsed={sidebarCollapsed}
           />
+
+          {/* Sidebar Logout */}
+          <div className="mt-auto pt-4 border-t border-border/40">
+            <button
+              onClick={handleLogout}
+              id="admin-logout"
+              className={`flex items-center rounded-lg transition-all w-full hover:bg-red-50 text-foreground/70 hover:text-red-500 ${
+                sidebarCollapsed ? 'justify-center p-2.5' : 'gap-2.5 px-3 py-2.5'
+              }`}
+              title={sidebarCollapsed ? 'Logout' : undefined}
+            >
+              <LogOut size={18} />
+              {!sidebarCollapsed && <span className="font-medium text-sm">Logout</span>}
+            </button>
+          </div>
         </aside>
 
         {/* Content Area */}
@@ -340,23 +582,70 @@ const AdminDashboard = () => {
           {/* Products View */}
           {activeTab === 'products' && (
             <div className="space-y-5">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <h2 className="font-heading text-2xl font-bold text-foreground">Manage Products</h2>
                   <p className="text-muted-foreground text-sm font-body mt-0.5">Add, edit, or remove gift products</p>
                 </div>
-                <button
-                  id="add-product-btn"
-                  onClick={() => {
-                    setEditingProduct(null);
-                    setNewProduct({ name: '', price: '', description: '', image: '', category: '', subCategory: '', occasion: '', giftFor: '', size: '', featured: false, isSoldOut: false });
-                    setShowProductModal(true);
-                  }}
-                  className="bg-primary text-white px-4 py-2.5 rounded-lg font-medium font-body flex items-center gap-2 hover:bg-primary/90 shadow-soft text-sm"
-                >
-                  <Plus size={16} />
-                  Add Product
-                </button>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button
+                    id="add-product-btn"
+                    onClick={() => {
+                      setEditingProduct(null);
+                      setNewProduct({ name: '', price: '', description: '', image: '', category: '', subCategory: '', occasion: '', giftFor: '', size: '', featured: false, isSoldOut: false });
+                      setShowProductModal(true);
+                    }}
+                    className="bg-primary text-white px-4 py-2.5 rounded-lg font-medium font-body flex items-center gap-2 hover:bg-primary/90 shadow-soft text-sm"
+                  >
+                    <Plus size={16} />
+                    Add Product
+                  </button>
+                </div>
+              </div>
+
+              {/* Bulk Excel Upload Panel */}
+              <div className="bg-white rounded-xl border border-border/60 shadow-card p-5">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center flex-shrink-0">
+                      <FileSpreadsheet size={20} className="text-emerald-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-heading font-bold text-foreground text-sm">Bulk Upload via Excel</h3>
+                      <p className="text-xs text-muted-foreground font-body mt-0.5">Upload an Excel file to add multiple products at once. Download the template to get started.</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <button
+                      onClick={handleDownloadTemplate}
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border/60 text-xs font-medium text-foreground/70 hover:bg-secondary transition-colors"
+                    >
+                      <Download size={14} />
+                      Template
+                    </button>
+                    <label className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium cursor-pointer transition-colors ${
+                      bulkUploading
+                        ? 'bg-secondary text-muted-foreground cursor-not-allowed'
+                        : 'bg-emerald-600 text-white hover:bg-emerald-700'
+                    }`}>
+                      {bulkUploading ? (
+                        <><Package size={14} className="animate-spin" /> Uploading...</>
+                      ) : (
+                        <><Upload size={14} /> Upload Excel</>
+                      )}
+                      <input
+                        type="file"
+                        className="hidden"
+                        accept=".xlsx,.xls,.csv"
+                        disabled={bulkUploading}
+                        onChange={e => {
+                          const file = e.target.files?.[0];
+                          if (file) { handleBulkExcelUpload(file); e.target.value = ''; }
+                        }}
+                      />
+                    </label>
+                  </div>
+                </div>
               </div>
 
               <div className="bg-white rounded-xl border border-border/60 overflow-x-auto shadow-card">
@@ -444,109 +733,259 @@ const AdminDashboard = () => {
           {/* Orders View */}
           {activeTab === 'orders' && (
             <div className="space-y-5">
-              <div>
-                <h2 className="font-heading text-2xl font-bold text-foreground">Recent Orders</h2>
-                <p className="text-muted-foreground text-sm font-body mt-0.5">Review and manage your gift orders</p>
-              </div>
+              {!selectedOrderId ? (
+                <>
+                  <div>
+                    <h2 className="font-heading text-2xl font-bold text-foreground">Recent Orders</h2>
+                    <p className="text-muted-foreground text-sm font-body mt-0.5">Review and manage your gift orders</p>
+                  </div>
 
-              <div className="space-y-5">
-                {data.orders.map((order) => (
-                  <div key={order.id} className="bg-white border border-border/60 rounded-xl p-5 shadow-card hover:border-primary/20 transition-all">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-3">
-                      <div className="flex items-start gap-3">
-                        <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center text-primary flex-shrink-0">
-                          <ShoppingBag size={18} />
+                  <div className="space-y-5">
+                    {data.orders.map((order) => (
+                      <div 
+                        key={order.id} 
+                        onClick={() => setSelectedOrderId(order.id)}
+                        className="bg-white border border-border/60 rounded-xl p-5 shadow-card hover:border-primary/20 hover:shadow-soft transition-all cursor-pointer group"
+                      >
+                        <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-3">
+                          <div className="flex items-start gap-3">
+                            <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center text-primary flex-shrink-0">
+                              <ShoppingBag size={18} />
+                            </div>
+                            <div>
+                              <p className="font-bold text-sm text-foreground">Order #{order.id.slice(0, 8)}</p>
+                              <p className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
+                                <Clock size={11} />
+                                {new Date(order.createdAt).toLocaleDateString()} at {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3 flex-wrap">
+                            <div className="text-right">
+                              <p className="text-[10px] text-muted-foreground uppercase font-semibold">Amount</p>
+                              <p className="text-primary font-bold text-sm">₹{Number(order.totalAmount).toLocaleString()}</p>
+                            </div>
+                            <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide ${
+                              order.status === 'COMPLETED' ? 'bg-green-100 text-green-700' :
+                              order.status === 'APPROVED' ? 'bg-blue-100 text-blue-700' :
+                              'bg-primary/10 text-primary'
+                            }`}>
+                              {order.status}
+                            </span>
+                            <span className="text-[10px] font-bold text-primary group-hover:underline flex items-center gap-1 ml-2">
+                              View details →
+                            </span>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-bold text-sm text-foreground">Order #{order.id.slice(0, 8)}</p>
-                          <p className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
-                            <Clock size={11} />
-                            {new Date(order.createdAt).toLocaleDateString()} at {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </p>
+
+                        <div className="grid md:grid-cols-2 gap-4 pt-4 border-t border-border/50 text-xs text-muted-foreground font-body">
+                          <div>
+                            <span className="font-semibold text-foreground">Customer:</span> {order.customerName} ({order.customerPhone})
+                          </div>
+                          <div>
+                            <span className="font-semibold text-foreground">Items:</span> {order.items?.length || 0} items purchased
+                          </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3 flex-wrap">
-                        <div className="text-right hidden md:block">
-                          <p className="text-xs text-muted-foreground uppercase font-semibold">Amount</p>
-                          <p className="text-primary font-bold text-lg">₹{Number(order.totalAmount).toLocaleString()}</p>
+                    ))}
+                    {data.orders.length === 0 && (
+                      <div className="p-14 text-center text-muted-foreground bg-white rounded-xl border border-dashed border-border font-body">
+                        <ShoppingBag size={32} className="mx-auto mb-2 opacity-20" />
+                        No orders placed yet.
+                      </div>
+                    )}
+                  </div>
+                </>
+              ) : (() => {
+                const order = data.orders.find(o => o.id === selectedOrderId);
+                if (!order) {
+                  setSelectedOrderId(null);
+                  return null;
+                }
+
+                const hasCustomImages = order.items?.some((item: any) => item.customImage);
+
+                return (
+                  <div className="space-y-6">
+                    {/* Back Button and Action Header */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <button
+                        onClick={() => setSelectedOrderId(null)}
+                        className="px-4 py-2 border border-border bg-white text-foreground hover:bg-secondary rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-all shadow-sm max-w-fit"
+                      >
+                        ← Back to Orders
+                      </button>
+
+                      {hasCustomImages && (
+                        <button
+                          onClick={() => handleDownloadAssetPDF(order)}
+                          className="px-5 py-2.5 bg-primary text-white hover:bg-primary/95 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-2 shadow-soft transition-all"
+                        >
+                          <ImageIcon size={14} /> Download Assets PDF
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Consolidated Details Panel */}
+                    <div className="bg-white border border-border/60 rounded-2xl p-6 shadow-card space-y-6">
+                      {/* Title Info */}
+                      <div className="flex flex-col md:flex-row justify-between border-b border-border/40 pb-5 gap-4">
+                        <div>
+                          <h3 className="font-heading text-xl font-bold text-foreground">Order Details</h3>
+                          <p className="text-xs text-muted-foreground font-body mt-1">ID: <strong className="text-foreground">{order.id}</strong></p>
+                          <p className="text-xs text-muted-foreground font-body">Placed on: {new Date(order.createdAt).toLocaleString()}</p>
                         </div>
-                        <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide ${
-                          order.status === 'COMPLETED' ? 'bg-green-100 text-green-700' :
-                          order.status === 'APPROVED' ? 'bg-blue-100 text-blue-700' :
-                          'bg-primary/10 text-primary'
-                        }`}>
-                          {order.status}
-                        </span>
-                        <div className="flex items-center gap-1.5">
-                          {order.status === 'PENDING' && (
-                            <button
-                              onClick={() => handleUpdateOrderStatus(order.id, 'APPROVED')}
-                              className="px-3 py-1 rounded-lg bg-blue-500 text-white text-[10px] font-bold hover:bg-blue-600 transition-colors uppercase tracking-wide"
-                            >
-                              Approve
-                            </button>
-                          )}
-                          {order.status === 'APPROVED' && (
-                            <div className="flex items-center gap-2">
-                              {!order.trackingId ? (
+                        <div className="flex items-center gap-3">
+                          <div className="text-right">
+                            <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Order Status</span>
+                            <div className="flex items-center gap-2 mt-1">
+                              <select
+                                value={order.status}
+                                onChange={(e) => handleUpdateOrderStatus(order.id, e.target.value)}
+                                className="px-3 py-1.5 rounded-lg border border-border bg-white text-xs font-bold focus:outline-none focus:ring-1 focus:ring-primary"
+                              >
+                                <option value="PENDING">PENDING</option>
+                                <option value="APPROVED">APPROVED</option>
+                                <option value="SHIPPED">SHIPPED</option>
+                                <option value="COMPLETED">COMPLETED</option>
+                                <option value="CANCELLED">CANCELLED</option>
+                              </select>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Customer & Address Details */}
+                      <div className="grid md:grid-cols-2 gap-6 bg-[#FCFAF7] border border-border/40 p-5 rounded-2xl">
+                        <div className="space-y-2">
+                          <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                            <User size={13} className="text-primary" /> Customer Base Details
+                          </h4>
+                          <div className="text-xs font-body space-y-1 text-foreground/80">
+                            <p><strong className="text-foreground font-heading">Name:</strong> {order.customerName}</p>
+                            <p><strong className="text-foreground font-heading">Email:</strong> {order.customerEmail || 'No email provided'}</p>
+                            <p><strong className="text-foreground font-heading">Phone:</strong> {order.customerPhone}</p>
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                            <MapPin size={13} className="text-primary" /> Delivery Information
+                          </h4>
+                          <div className="text-xs font-body space-y-1 text-foreground/80">
+                            <p><strong className="text-foreground font-heading">Address:</strong> {order.address}</p>
+                            <p>
+                              <strong className="text-foreground font-heading">Tracking ID (Trackon):</strong>{' '}
+                              {order.trackingId ? (
+                                <span className="bg-green-50 text-green-700 px-2 py-0.5 border border-green-200 rounded font-bold">{order.trackingId}</span>
+                              ) : (
                                 <button
                                   onClick={() => {
                                     const tid = prompt('Enter Trackon Tracking ID:');
                                     if (tid) handleUpdateOrderStatus(order.id, undefined, tid);
                                   }}
-                                  className="px-3 py-1 rounded-lg bg-primary text-white text-[10px] font-bold hover:bg-primary/90 transition-colors uppercase tracking-wide flex items-center gap-1"
+                                  className="text-primary hover:underline font-bold"
                                 >
-                                  <Truck size={12} /> Add Tracking
+                                  + Assign Tracking ID
                                 </button>
-                              ) : (
-                                <div className="flex items-center gap-2 px-2 py-1 bg-green-50 rounded-lg border border-green-200">
-                                  <Truck size={12} className="text-green-600" />
-                                  <span className="text-[10px] font-bold text-green-700">{order.trackingId}</span>
-                                </div>
                               )}
-                              <button
-                                onClick={() => handleUpdateOrderStatus(order.id, 'COMPLETED')}
-                                className="px-3 py-1 rounded-lg bg-green-500 text-white text-[10px] font-bold hover:bg-green-600 transition-colors uppercase tracking-wide"
-                              >
-                                Complete
-                              </button>
-                            </div>
-                          )}
+                            </p>
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div className="grid md:grid-cols-3 gap-4 pt-4 border-t border-border/50">
-                      <div className="space-y-1.5">
-                        <p className="text-xs font-semibold text-muted-foreground uppercase flex items-center gap-1.5">
-                          <User size={11} /> Customer
-                        </p>
-                        <p className="text-sm font-medium text-foreground">{order.customerName}</p>
-                        <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-                          <Phone size={11} /> {order.customerPhone}
-                        </p>
-                      </div>
-                      <div className="space-y-1.5">
-                        <p className="text-xs font-semibold text-muted-foreground uppercase flex items-center gap-1.5">
-                          <MapPin size={11} /> Delivery
-                        </p>
-                        <p className="text-sm text-foreground leading-tight">{order.address}</p>
-                      </div>
-                      <div className="space-y-1.5">
-                        <p className="text-xs font-semibold text-muted-foreground uppercase flex items-center gap-1.5">
-                          <Package size={11} /> Items
-                        </p>
-                        <div className="space-y-2.5">
-                          {order.items.map((item: any) => (
-                            <div key={item.id} className="flex items-center gap-2.5">
-                              <img 
-                                src={item.product.image || 'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=100&q=80'} 
-                                alt={item.product.name} 
-                                className="w-10 h-10 rounded object-cover border border-border/50" 
-                              />
-                              <div>
-                                <p className="text-sm text-foreground font-medium leading-tight line-clamp-1">{item.product.name}</p>
-                                <p className="text-xs text-muted-foreground mt-0.5">Qty: {item.quantity}</p>
+                      {/* Items Table / Customizations list */}
+                      <div className="space-y-4">
+                        <h4 className="font-heading font-bold text-sm text-foreground uppercase tracking-wider">Purchased Items & Personalizations</h4>
+                        
+                        <div className="space-y-4">
+                          {order.items?.map((item: any) => (
+                            <div key={item.id} className="p-4 border border-border/50 rounded-xl bg-white flex flex-col md:flex-row gap-5 items-start">
+                              {/* Product card */}
+                              <div className="flex gap-3 md:w-1/3 shrink-0">
+                                <div className="w-14 h-14 rounded-lg overflow-hidden border border-border/60 bg-[#F8F3EE] shrink-0">
+                                  <img 
+                                    src={item.product.image || 'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=100&q=80'} 
+                                    alt={item.product.name} 
+                                    className="w-full h-full object-cover" 
+                                  />
+                                </div>
+                                <div className="min-w-0">
+                                  <h5 className="font-heading font-bold text-xs text-foreground leading-snug line-clamp-2">{item.product.name}</h5>
+                                  <p className="text-[10px] text-muted-foreground font-body mt-1">Qty: {item.quantity}</p>
+                                  <p className="text-[10px] text-primary font-bold">₹{Number(item.price).toLocaleString()}</p>
+                                </div>
+                              </div>
+
+                              {/* Item Status dropdown */}
+                              <div className="flex flex-col gap-1.5 md:w-1/4 shrink-0">
+                                <label className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">Product Status</label>
+                                <select
+                                  value={item.status || 'PENDING'}
+                                  onChange={(e) => handleUpdateOrderItemStatus(item.id, e.target.value)}
+                                  className={`px-3 py-1.5 rounded-lg border text-xs font-bold focus:outline-none focus:ring-1 focus:ring-primary ${
+                                    item.status === 'COMPLETED' ? 'bg-green-50 border-green-200 text-green-700' :
+                                    item.status === 'IN_PROGRESS' ? 'bg-blue-50 border-blue-200 text-blue-700' :
+                                    'bg-gray-50 border-border text-muted-foreground'
+                                  }`}
+                                >
+                                  <option value="PENDING">QUEUED (PENDING)</option>
+                                  <option value="IN_PROGRESS">CRAFTING (IN_PROGRESS)</option>
+                                  <option value="COMPLETED">READY (COMPLETED)</option>
+                                </select>
+                              </div>
+
+                              {/* Asset preview */}
+                              <div className="flex-1 min-w-0 w-full space-y-3 p-3 bg-secondary/10 rounded-xl border border-border/40">
+                                <div className="flex flex-col gap-4 items-start">
+                                  <div className="space-y-1.5 w-full">
+                                    <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground block">Uploaded Photos</span>
+                                    <div className="grid gap-2 p-2 bg-white rounded-xl border border-border/10 overflow-y-auto max-h-40"
+                                      style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(56px, 1fr))' }}
+                                    >
+                                      {(() => {
+                                        let imageUrls: string[] = [];
+                                        if (item.customImage) {
+                                          if (item.customImage.startsWith('[')) {
+                                            try {
+                                              imageUrls = JSON.parse(item.customImage);
+                                            } catch {
+                                              imageUrls = [item.customImage];
+                                            }
+                                          } else {
+                                            imageUrls = [item.customImage];
+                                          }
+                                        }
+
+                                        return imageUrls.length > 0 ? (
+                                          imageUrls.map((url, uIdx) => (
+                                            <div key={uIdx} className="w-full aspect-square rounded-lg overflow-hidden border border-border bg-white relative group">
+                                              <img src={url} className="w-full h-full object-cover" alt="Custom upload" />
+                                              <a
+                                                href={url}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white"
+                                              >
+                                                <ExternalLink size={12} />
+                                              </a>
+                                            </div>
+                                          ))
+                                        ) : (
+                                          <div className="col-span-full flex items-center justify-center h-14 rounded-lg border border-dashed border-border/80 text-muted-foreground/40 text-xs bg-white">
+                                            No Images
+                                          </div>
+                                        );
+                                      })()}
+                                    </div>
+                                  </div>
+
+                                  <div className="flex-1">
+                                    <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground block">Personalization Note</span>
+                                    <div className="mt-1 bg-white p-3 rounded-lg border border-border/40 text-xs leading-relaxed text-foreground/80 italic font-body min-h-[50px]">
+                                      {item.customNote ? `"${item.customNote}"` : 'No customization instructions entered.'}
+                                    </div>
+                                  </div>
+                                </div>
                               </div>
                             </div>
                           ))}
@@ -554,14 +993,8 @@ const AdminDashboard = () => {
                       </div>
                     </div>
                   </div>
-                ))}
-                {data.orders.length === 0 && (
-                  <div className="p-14 text-center text-muted-foreground bg-white rounded-xl border border-dashed border-border font-body">
-                    <ShoppingBag size={32} className="mx-auto mb-2 opacity-20" />
-                    No orders placed yet.
-                  </div>
-                )}
-              </div>
+                );
+              })()}
             </div>
           )}
 
@@ -953,14 +1386,16 @@ const AdminDashboard = () => {
 const NavItems = ({
   activeTab,
   setActiveTab,
-  counts
+  counts,
+  collapsed = false
 }: {
   activeTab: string;
   setActiveTab: (tab: any) => void;
   counts: { products: number; orders: number; contacts: number };
+  collapsed?: boolean;
 }) => (
   <>
-    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-3 pb-1">Navigation</p>
+    {!collapsed && <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-3 pb-1">Navigation</p>}
     {[
       { id: 'products', label: 'Products', icon: Package, count: counts.products },
       { id: 'orders', label: 'Orders', icon: ShoppingBag, count: counts.orders },
@@ -970,36 +1405,44 @@ const NavItems = ({
         key={item.id}
         onClick={() => setActiveTab(item.id)}
         id={`nav-${item.id}`}
-        className={`flex items-center justify-between px-3 py-2.5 rounded-lg transition-all w-full text-left ${
+        title={collapsed ? item.label : undefined}
+        className={`flex items-center rounded-lg transition-all w-full ${
+          collapsed ? 'justify-center p-2.5' : 'justify-between px-3 py-2.5 text-left'
+        } ${
           activeTab === item.id
             ? 'bg-primary text-white shadow-soft'
             : 'hover:bg-[#F8F3EE] text-foreground/70'
         }`}
       >
-        <div className="flex items-center gap-2.5">
+        <div className={`flex items-center ${ collapsed ? '' : 'gap-2.5' }`}>
           <item.icon size={18} />
-          <span className="font-medium text-sm">{item.label}</span>
+          {!collapsed && <span className="font-medium text-sm">{item.label}</span>}
         </div>
-        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-          activeTab === item.id ? 'bg-white/20 text-white' : 'bg-secondary text-muted-foreground'
-        }`}>
-          {item.count !== undefined ? item.count : ''}
-        </span>
+        {!collapsed && (
+          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+            activeTab === item.id ? 'bg-white/20 text-white' : 'bg-secondary text-muted-foreground'
+          }`}>
+            {item.count !== undefined ? item.count : ''}
+          </span>
+        )}
       </button>
     ))}
     
-    <div className="mt-6">
-      <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-3 pb-1">Settings</p>
+    <div className={collapsed ? 'mt-2' : 'mt-6'}>
+      {!collapsed && <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-3 pb-1">Settings</p>}
       <button
         onClick={() => setActiveTab('profile')}
-        className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg transition-all w-full text-left ${
+        title={collapsed ? 'My Profile' : undefined}
+        className={`flex items-center rounded-lg transition-all w-full ${
+          collapsed ? 'justify-center p-2.5' : 'gap-2.5 px-3 py-2.5 text-left'
+        } ${
           activeTab === 'profile'
             ? 'bg-primary text-white shadow-soft'
             : 'hover:bg-[#F8F3EE] text-foreground/70'
         }`}
       >
         <User size={18} />
-        <span className="font-medium text-sm">My Profile</span>
+        {!collapsed && <span className="font-medium text-sm">My Profile</span>}
       </button>
     </div>
   </>

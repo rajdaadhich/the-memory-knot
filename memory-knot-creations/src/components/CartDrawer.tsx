@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ShoppingBag, Plus, Minus, Trash2, ArrowLeft, ArrowRight, Heart, ShieldCheck, Truck, RotateCcw, Plane, Package, Zap, CheckCircle2, Smartphone, ExternalLink, Loader2, Scan as LucideScanLine, Star } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
+import { useUser } from '@/contexts/UserContext';
 import { SITE_CONFIG, API_BASE_URL } from '@/config';
 import { QRCodeSVG } from 'qrcode.react';
 import { Check } from 'lucide-react';
@@ -26,7 +28,9 @@ const SHIPPING_OPTIONS = [
 ];
 
 const CartDrawer = () => {
+  const navigate = useNavigate();
   const { items, removeItem, updateQuantity, clearCart, isCartOpen, setIsCartOpen, totalPrice } = useCart();
+  const { user } = useUser();
   const [checkoutStep, setCheckoutStep] = useState(1); // 1: Cart, 2: Shipping, 3: Payment
   const [isPaid, setIsPaid] = useState(false);
   const [isWaitingForConfirmation, setIsWaitingForConfirmation] = useState(false);
@@ -35,6 +39,9 @@ const CartDrawer = () => {
   const [isQRMode, setIsQRMode] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [showMockPopup, setShowMockPopup] = useState(false);
+  const [mockOrderDetails, setMockOrderDetails] = useState<{ orderId: string, razorpayOrderId: string } | null>(null);
+  const [createdOrderId, setCreatedOrderId] = useState<string | null>(null);
   const [shippingInfo, setShippingInfo] = useState({
     name: '',
     email: '',
@@ -58,6 +65,21 @@ const CartDrawer = () => {
       setIsQRMode(!match); // Default to QR code on desktop, Swipe/Deep-links on mobile
     };
     checkMobile();
+  }, [isCartOpen]);
+
+  // Load Razorpay Script
+  useEffect(() => {
+    const loadRazorpayScript = () => {
+      if (document.getElementById('razorpay-sdk')) return;
+      const script = document.createElement('script');
+      script.id = 'razorpay-sdk';
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.async = true;
+      document.body.appendChild(script);
+    };
+    if (isCartOpen) {
+      loadRazorpayScript();
+    }
   }, [isCartOpen]);
 
   const validateForm = () => {
@@ -157,21 +179,22 @@ const CartDrawer = () => {
     }
   };
 
-  const handleFinalCheckout = async () => {
+  const handleRazorpayPayment = async () => {
     setIsSubmitting(true);
     try {
-      // Send Odrer to Backend
+      // 1. Create order on backend (creates both DB order and Razorpay order)
       const response = await fetch(`${API_BASE_URL}/orders`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          userId: user?.id || null,
           customerName: shippingInfo.name,
           customerEmail: shippingInfo.email,
           customerPhone: `${countryCode} ${shippingInfo.phone}`,
           address: `${shippingInfo.address}${shippingInfo.pincode ? `, Pincode: ${shippingInfo.pincode}` : ''}${addGiftBag ? ' [PREMIUM GIFT BAG REQUESTED (+₹40)]' : ''}`,
           totalAmount: finalTotal,
           items: items.map(item => ({
-            id: item.id,
+            productId: item.id,
             name: item.name,
             price: item.price,
             quantity: item.quantity
@@ -181,26 +204,109 @@ const CartDrawer = () => {
 
       if (!response.ok) throw new Error("Failed to place order");
 
-      setIsPaid(true);
+      const data = await response.json();
+      const { order, razorpayOrderId, keyId } = data;
+      setCreatedOrderId(order.id);
+
+      // 2. Determine if keys are dummy or missing
+      const isDummyKey = !keyId || keyId === "" || keyId === "rzp_test_dummyKeyId";
+      const isDummyOrder = !razorpayOrderId || razorpayOrderId.startsWith("order_dummy");
+      const hasRazorpaySDK = typeof (window as any).Razorpay !== 'undefined';
+
+      if (isDummyKey || isDummyOrder || !hasRazorpaySDK) {
+        console.warn("Using sandbox mock popup because Razorpay credentials are dummy or SDK is not loaded.");
+        setMockOrderDetails({ orderId: order.id, razorpayOrderId });
+        setShowMockPopup(true);
+        setIsSubmitting(false);
+        return;
+      }
+
+      // 3. Initialize real Razorpay Checkout widget
+      const options = {
+        key: keyId,
+        amount: Math.round(finalTotal * 100),
+        currency: "INR",
+        name: "The Memory Knot",
+        description: "Handcrafted Personalized Gifts",
+        order_id: razorpayOrderId,
+        handler: async function (paymentRes: any) {
+          setIsSubmitting(true);
+          try {
+            const verifyRes = await fetch(`${API_BASE_URL}/orders/verify-payment`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                orderId: order.id,
+                razorpay_order_id: paymentRes.razorpay_order_id,
+                razorpay_payment_id: paymentRes.razorpay_payment_id,
+                razorpay_signature: paymentRes.razorpay_signature
+              })
+            });
+
+            if (!verifyRes.ok) throw new Error("Payment verification failed");
+
+            setIsPaid(true);
+            toast.success("Payment successful!");
+          } catch (err) {
+            console.error("Payment Verification Error:", err);
+            toast.error("Failed to verify payment. Please contact support.");
+          } finally {
+            setIsSubmitting(false);
+          }
+        },
+        prefill: {
+          name: shippingInfo.name,
+          email: shippingInfo.email,
+          contact: `${countryCode}${shippingInfo.phone}`
+        },
+        theme: {
+          color: "#FF69B4"
+        },
+        modal: {
+          ondismiss: function () {
+            setIsSubmitting(false);
+            toast.info("Payment cancelled.");
+          }
+        }
+      };
+
+      const rzp = new (window as any).Razorpay(options);
+      rzp.open();
     } catch (error) {
       console.error("Checkout Error:", error);
-      alert("Failed to confirm order. Please try again.");
-    } finally {
+      toast.error("Failed to confirm order. Please try again.");
       setIsSubmitting(false);
     }
   };
 
-  const initiatePayment = (customUrl?: string) => {
-    // Determine the target URL
-    const targetUrl = customUrl || appLinks[selectedApp];
-    
-    // Open the UPI link using direct assignment for better iOS reliability
-    if (typeof window !== 'undefined') {
-      window.location.href = targetUrl;
+  const handleSimulatePaymentSuccess = async () => {
+    if (!mockOrderDetails) return;
+    setIsSubmitting(true);
+    setShowMockPopup(false);
+    try {
+      const verifyRes = await fetch(`${API_BASE_URL}/orders/verify-payment`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderId: mockOrderDetails.orderId,
+          razorpay_order_id: mockOrderDetails.razorpayOrderId,
+          razorpay_payment_id: "pay_dummy_123",
+          razorpay_signature: "sig_dummy_123"
+        })
+      });
+
+      if (!verifyRes.ok) throw new Error("Verification failed");
+
+      setCreatedOrderId(mockOrderDetails.orderId);
+      setIsPaid(true);
+      toast.success("Sandbox mock payment successful!");
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to verify simulated payment");
+    } finally {
+      setIsSubmitting(false);
+      setMockOrderDetails(null);
     }
-    
-    // Move to waiting view instead of finalizing
-    setIsWaitingForConfirmation(true);
   };
 
   return (
@@ -483,215 +589,76 @@ const CartDrawer = () => {
                     <div className="space-y-6">
                       <div className="text-center space-y-2">
                         <h3 className="font-heading text-2xl font-bold text-foreground">Secure Payment</h3>
-                        <p className="text-sm text-muted-foreground font-body">Pay safely using any UPI app</p>
-                      </div>
-
-                      <div className="bg-primary/5 p-6 rounded-2xl border-2 border-dashed border-primary/20 flex flex-col items-center gap-4">
-                        <div className="flex flex-col items-center gap-1">
-                          <span className="text-[10px] font-bold text-primary/60 uppercase tracking-widest px-3 py-1 bg-white rounded-full shadow-sm">Total Payable</span>
-                          <span className="text-[10px] text-muted-foreground font-body">{selectedShipping.name} included</span>
-                        </div>
-                        <span className="text-4xl font-heading font-black text-primary">₹{finalTotal.toLocaleString()}</span>
+                        <p className="text-sm text-muted-foreground font-body">Pay safely using Razorpay</p>
                       </div>
 
                       {isPaid ? (
-                        <div className="py-10 text-center space-y-5">
-                          <div className="w-20 h-20 bg-primary/10 text-primary rounded-full flex items-center justify-center mx-auto shadow-sm">
+                        <div className="py-6 text-center space-y-5">
+                          <div className="w-20 h-20 bg-green-50 text-green-600 rounded-full flex items-center justify-center mx-auto shadow-sm">
                             <ShieldCheck size={40} />
                           </div>
-                          <div className="space-y-3">
-                            <h4 className="font-heading text-2xl font-black text-foreground">Thank You!</h4>
-                            <div className="text-sm text-muted-foreground px-2 space-y-3 font-body">
-                              <p>Thank you for ordering with <strong>The Memory Knot</strong>.</p>
-                              <p className="bg-secondary/30 p-3 rounded-lg border border-primary/10 text-xs text-balance text-foreground/80 leading-relaxed">
-                                Our team will soon verify your payment. Once confirmed, we will share all the updates and formally confirm your order details via Email and WhatsApp!
+                          <div className="space-y-2">
+                            <h4 className="font-heading text-2xl font-black text-foreground">Order Placed! 🎉</h4>
+                            <p className="text-sm text-muted-foreground font-body px-2">
+                              Your order has been received and will be delivered to you shortly.
+                            </p>
+                          </div>
+
+                          {/* Customize CTA — now the star of the show */}
+                          <div className="space-y-3 pt-2">
+                            <div className="bg-primary/5 border border-primary/15 rounded-2xl p-4">
+                              <p className="text-sm font-semibold text-foreground mb-1">📸 One more step!</p>
+                              <p className="text-xs text-muted-foreground font-body leading-relaxed">
+                                Upload your photos &amp; personalization instructions to complete your gift.
                               </p>
                             </div>
+                            <button
+                              onClick={() => {
+                                setIsCartOpen(false);
+                                clearCart();
+                                if (createdOrderId) {
+                                  navigate(`/customize/${createdOrderId}`);
+                                } else {
+                                  navigate('/orders');
+                                }
+                              }}
+                              className="w-full py-4 bg-primary text-white rounded-xl font-bold font-heading hover:bg-primary/95 transition-all shadow-soft flex items-center justify-center gap-2 text-base"
+                            >
+                              ✨ Customize Your Order <ArrowRight size={16} />
+                            </button>
+                            <button
+                              onClick={() => {
+                                setIsCartOpen(false);
+                                clearCart();
+                                navigate('/orders');
+                              }}
+                              className="w-full py-2 text-xs text-muted-foreground font-semibold hover:text-foreground transition-all"
+                            >
+                              Do it later / Go to My Orders
+                            </button>
                           </div>
-                          <button
-                            onClick={() => {
-                              setIsCartOpen(false);
-                              setTimeout(() => clearCart(), 300);
-                            }}
-                            className="mt-6 w-full py-3.5 bg-primary/10 text-primary rounded-xl font-bold font-body hover:bg-primary/20 transition-all active:scale-[0.98]"
-                          >
-                            Close this window
-                          </button>
                         </div>
                       ) : (
-                        <div className="space-y-6">
-                          {isWaitingForConfirmation ? (
-                            <motion.div 
-                              initial={{ opacity: 0, y: 20 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              className="space-y-6"
-                            >
-                              <div className="bg-primary/5 p-6 rounded-2xl border-2 border-primary/20 text-center space-y-4">
-                                <div className="w-16 h-16 bg-primary/10 text-primary rounded-full flex items-center justify-center mx-auto">
-                                  <Smartphone size={32} className="animate-bounce" />
-                                </div>
-                                <div className="space-y-1">
-                                  <h4 className="font-heading text-lg font-bold text-foreground">Waiting for Payment</h4>
-                                  <p className="text-xs text-muted-foreground font-body text-balance">Please finish the payment in your UPI app and then return here to confirm.</p>
-                                </div>
-                              </div>
+                        <div className="space-y-6 text-center pt-4">
+                          <p className="text-sm text-muted-foreground font-body leading-relaxed mb-4">
+                            Click below to complete your payment securely using UPI, Card, Wallets, or Netbanking.
+                          </p>
 
-                              <button
-                                onClick={handleFinalCheckout}
-                                disabled={isSubmitting}
-                                className="w-full py-4 bg-primary text-white rounded-xl font-bold font-heading shadow-soft flex items-center justify-center gap-2 hover:bg-primary/95 transition-all text-lg"
-                              >
-                                {isSubmitting ? (
-                                  <>
-                                    <Loader2 className="animate-spin" size={20} /> Confirming...
-                                  </>
-                                ) : (
-                                  <>
-                                    <ShieldCheck size={20} /> I Have Paid
-                                  </>
-                                )}
-                              </button>
-
-                              <button
-                                onClick={() => setIsWaitingForConfirmation(false)}
-                                className="w-full py-2 text-[10px] text-muted-foreground font-bold uppercase tracking-widest hover:text-primary transition-colors text-center"
-                              >
-                                Try another method / Back
-                              </button>
-                            </motion.div>
-                          ) : (
-                            <AnimatePresence mode="wait">
-                              {!isQRMode ? (
-                                <motion.div
-                                  key="slider-view"
-                                  initial={{ opacity: 0, scale: 0.95 }}
-                                  animate={{ opacity: 1, scale: 1 }}
-                                  exit={{ opacity: 0, scale: 0.95 }}
-                                  transition={{ duration: 0.2 }}
-                                  className="space-y-6"
-                                >
-                                  <div className="flex items-center gap-2">
-                                    {/* Swipe Slider (Moved to Left) */}
-                                    <div className="flex-1 relative h-16 bg-secondary/30 rounded-full border border-border/60 overflow-hidden p-1.5 shadow-inner">
-                                      <motion.div
-                                        drag="x"
-                                        dragConstraints={{ left: 0, right: 140 }}
-                                        dragElastic={0.05}
-                                        onDragEnd={(_, info) => {
-                                          if (info.offset.x > 70) {
-                                            initiatePayment();
-                                          }
-                                        }}
-                                        className="absolute left-1.5 top-1.5 h-[52px] w-16 bg-primary rounded-full shadow-lg flex items-center justify-center text-white cursor-grab active:cursor-grabbing z-10"
-                                        whileTap={{ scale: 0.95 }}
-                                      >
-                                        <ArrowRight size={22} />
-                                      </motion.div>
-                                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                        <span className="text-[9px] font-bold text-primary/40 uppercase tracking-[0.2em] pl-10 font-body">Swipe to Pay</span>
-                                      </div>
-                                    </div>
-
-                                    {/* Beautiful App Selector Dropdown */}
-                                    <Select value={selectedApp} onValueChange={(value: any) => setSelectedApp(value)}>
-                                      <SelectTrigger className="h-16 w-32 bg-white border-border/60 rounded-2xl flex items-center justify-center shadow-sm hover:border-primary/40 focus:ring-primary/20 transition-all group overflow-hidden relative px-2 [&>svg:last-child]:hidden outline-none">
-                                        <div className="absolute inset-x-0 bottom-0 h-0.5 bg-primary transform scale-x-0 group-hover:scale-x-100 transition-transform origin-center" />
-                                        <div className="flex items-center justify-center w-full relative">
-                                          <div className="flex items-center justify-center h-7 w-full relative">
-                                            {selectedApp === 'paytm' && <div className="w-[64px] h-[14px] flex items-center justify-center"><img src={paytmLogo} className="max-h-full max-w-full object-contain" alt="Paytm" /></div>}
-                                            {selectedApp === 'phonepe' && <div className="w-[64px] h-[22px] flex items-center justify-center"><img src={phonepeLogo} className="max-h-full max-w-full object-contain" alt="PhonePe" /></div>}
-                                            {selectedApp === 'gpay' && <div className="w-[64px] h-[20px] flex items-center justify-center"><img src={gpayLogo} className="max-h-full max-w-full object-contain" alt="GPay" /></div>}
-
-                                            <div className="absolute top-1/2 -translate-y-1/2 -right-1 text-muted-foreground/40 group-hover:text-primary transition-colors">
-                                              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-                                            </div>
-                                          </div>
-                                        </div>
-                                      </SelectTrigger>
-                                      
-                                      <SelectContent className="z-[10000] w-[140px] p-2 bg-white/95 backdrop-blur-md rounded-2xl shadow-xl border-border/40" side="top" align="center" sideOffset={10}>
-                                        <SelectItem value="paytm" className="cursor-pointer py-3.5 rounded-xl focus:bg-primary/5 focus:text-primary transition-colors [&>span]:w-full">
-                                          <div className="w-full h-8 flex items-center justify-center">
-                                            <img src={paytmLogo} className="h-[14px] w-auto max-w-[100px] object-contain" alt="Paytm" />
-                                          </div>
-                                        </SelectItem>
-                                        <SelectItem value="phonepe" className="cursor-pointer py-3.5 rounded-xl focus:bg-primary/5 focus:text-primary transition-colors [&>span]:w-full">
-                                          <div className="w-full h-8 flex items-center justify-center">
-                                            <img src={phonepeLogo} className="h-[22px] w-auto max-w-[100px] object-contain" alt="PhonePe" />
-                                          </div>
-                                        </SelectItem>
-                                        <SelectItem value="gpay" className="cursor-pointer py-3.5 rounded-xl focus:bg-primary/5 focus:text-primary transition-colors [&>span]:w-full">
-                                          <div className="w-full h-8 flex items-center justify-center">
-                                            <img src={gpayLogo} className="h-[24px] w-auto max-w-[100px] object-contain" alt="GPay" />
-                                          </div>
-                                        </SelectItem>
-                                      </SelectContent>
-                                    </Select>
-                                  </div>
-
-                                  {isMobile && (
-                                    <button
-                                      onClick={() => setIsQRMode(true)}
-                                      className="w-full py-2 flex items-center justify-center gap-2 text-[10px] text-muted-foreground font-bold hover:text-primary transition-colors uppercase tracking-widest"
-                                    >
-                                      <LucideScanLine size={14} /> Pay using the QR code
-                                    </button>
-                                  )}
-                                </motion.div>
-                              ) : (
-                                <motion.div
-                                  key="qr-view"
-                                  initial={{ opacity: 0, scale: 0.95 }}
-                                  animate={{ opacity: 1, scale: 1 }}
-                                  exit={{ opacity: 0, scale: 0.95 }}
-                                  transition={{ duration: 0.2 }}
-                                  className="flex flex-col items-center justify-center h-full max-h-[420px] w-full px-4"
-                                >
-                                  <div className="p-3.5 bg-white rounded-[2rem] shadow-xl border border-border/40 relative group overflow-hidden mb-3">
-                                    <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-                                    <QRCodeSVG value={upiUrl} size={150} />
-                                  </div>
-                                  <div className="text-center space-y-1 mb-4">
-                                    <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Scan with any UPI app</p>
-                                    <button 
-                                      onClick={() => {
-                                        navigator.clipboard.writeText(upiId);
-                                        toast.success("UPI ID Copied Successfully!");
-                                      }}
-                                      className="text-[11px] text-primary hover:underline font-bold mt-1 block mx-auto font-body"
-                                    >
-                                      Copy UPI ID: {upiId}
-                                    </button>
-                                  </div>
-
-                                  <button
-                                    onClick={handleFinalCheckout}
-                                    disabled={isSubmitting}
-                                    className="w-full py-3.5 bg-primary text-white rounded-xl font-bold font-heading shadow-soft flex items-center justify-center gap-2 hover:bg-primary/95 transition-all text-sm mb-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                                  >
-                                    {isSubmitting ? (
-                                      <>
-                                        <Loader2 className="animate-spin" size={16} /> Confirming...
-                                      </>
-                                    ) : (
-                                      <>
-                                        <ShieldCheck size={16} /> I Have Paid
-                                      </>
-                                    )}
-                                  </button>
-
-                                  {isMobile && (
-                                    <button
-                                      onClick={() => setIsQRMode(false)}
-                                      className="px-5 py-1.5 bg-secondary/50 hover:bg-secondary rounded-full flex items-center gap-2 text-[10px] font-bold text-foreground transition-colors uppercase tracking-widest shrink-0 mt-2"
-                                    >
-                                      <ArrowLeft size={12} /> Back to App Link
-                                    </button>
-                                  )}
-                                </motion.div>
-                              )}
-                           </AnimatePresence>
-                          )}
+                          <button
+                            onClick={handleRazorpayPayment}
+                            disabled={isSubmitting}
+                            className="w-full py-4 bg-primary text-white rounded-xl font-bold font-heading shadow-soft flex items-center justify-center gap-2 hover:bg-primary/95 transition-all text-lg disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
+                          >
+                            {isSubmitting ? (
+                              <>
+                                <Loader2 className="animate-spin" size={20} /> Processing...
+                              </>
+                            ) : (
+                              <>
+                                <ShieldCheck size={20} /> Pay with Razorpay
+                              </>
+                            )}
+                          </button>
                         </div>
                       )}
                     </div>
@@ -768,6 +735,50 @@ const CartDrawer = () => {
                   <Heart size={10} className="text-primary" fill="currentColor" />
                   Made with love, delivered with care
                 </p>
+              </div>
+            )}
+
+            {/* Mock Checkout Modal (Sandbox Bypass) */}
+            {showMockPopup && (
+              <div className="absolute inset-0 bg-black/80 backdrop-blur-sm z-[60000] flex items-center justify-center p-6 text-center">
+                <div className="bg-white rounded-2xl p-6 max-w-sm w-full space-y-6 shadow-2xl border border-border">
+                  <div className="w-16 h-16 bg-primary/10 text-primary rounded-full flex items-center justify-center mx-auto">
+                    <ShieldCheck size={32} />
+                  </div>
+                  <div className="space-y-2">
+                    <h3 className="font-heading text-xl font-bold text-foreground">Sandbox Test Payment</h3>
+                    <p className="text-xs text-muted-foreground font-body">
+                      No Razorpay credentials detected (or dummy keys are used). You can simulate the transaction flow here:
+                    </p>
+                  </div>
+                  <div className="space-y-3 pt-2">
+                    <button
+                      onClick={handleSimulatePaymentSuccess}
+                      className="w-full py-3 bg-green-600 text-white rounded-xl font-bold font-heading hover:bg-green-700 transition-colors shadow-sm text-sm"
+                    >
+                      Simulate Payment Success
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowMockPopup(false);
+                        setMockOrderDetails(null);
+                        toast.error("Test payment simulated failure.");
+                      }}
+                      className="w-full py-3 bg-red-50 text-red-600 rounded-xl font-bold font-heading hover:bg-red-100 transition-colors text-sm"
+                    >
+                      Simulate Payment Failure
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowMockPopup(false);
+                        setMockOrderDetails(null);
+                      }}
+                      className="w-full py-2 text-xs text-muted-foreground font-semibold hover:text-foreground transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
           </motion.div>

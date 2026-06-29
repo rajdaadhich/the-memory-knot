@@ -15,12 +15,14 @@ import TrackOrderPage from "./pages/TrackOrderPage.tsx";
 import LoginPage from "./pages/LoginPage.tsx";
 import DashboardPage from "./pages/DashboardPage.tsx";
 import OrdersPage from "./pages/OrdersPage.tsx";
+import CustomizationPage from "./pages/CustomizationPage.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import AdminLogin from "./pages/Admin/Login.tsx";
 import AdminDashboard from "./pages/Admin/Dashboard.tsx";
 import AdminForgotPassword from "./pages/Admin/ForgotPassword.tsx";
 import AdminResetPassword from "./pages/Admin/ResetPassword.tsx";
 import CartDrawer from "./components/CartDrawer.tsx";
+import ScrollToTop from "./components/ScrollToTop.tsx";
 
 
 const queryClient = new QueryClient();
@@ -32,6 +34,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <ScrollToTop />
           <UserProvider>
             <CartProvider>
               <Routes>
@@ -43,6 +46,7 @@ const App = () => (
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/dashboard" element={<DashboardPage />} />
                 <Route path="/orders" element={<OrdersPage />} />
+                <Route path="/customize/:orderId" element={<CustomizationPage />} />
                 <Route path="/admin" element={<AdminLogin />} />
                 <Route path="/admin/login" element={<AdminLogin />} />
                 <Route path="/admin/forgot-password" element={<AdminForgotPassword />} />

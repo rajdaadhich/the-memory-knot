@@ -14,7 +14,7 @@ const QuickViewModal = ({ product, onClose }: QuickViewModalProps) => {
   const [copied, setCopied] = useState(false);
 
   const handleShare = async () => {
-    const shareUrl = window.location.href;
+    const shareUrl = `${window.location.origin}/shop?productId=${product.id}`;
     const shareText = `Check out "${product.name}" on ${SITE_CONFIG.name} — ₹${product.price.toLocaleString()}`;
 
     if (navigator.share) {
@@ -24,7 +24,6 @@ const QuickViewModal = ({ product, onClose }: QuickViewModalProps) => {
         // User cancelled share — do nothing
       }
     } else {
-      // Fallback: copy link to clipboard
       try {
         await navigator.clipboard.writeText(shareUrl);
         setCopied(true);
@@ -56,10 +55,10 @@ const QuickViewModal = ({ product, onClose }: QuickViewModalProps) => {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="relative bg-white w-full max-w-4xl rounded-2xl overflow-hidden shadow-2xl flex flex-col md:flex-row max-h-[90vh] border border-border/40"
+            className="relative bg-white w-full md:w-[900px] max-h-[90dvh] md:h-[550px] rounded-2xl overflow-hidden shadow-2xl flex flex-col md:flex-row border border-border/40"
           >
             {/* Image Section */}
-            <div className="w-full md:w-1/2 h-64 md:h-auto bg-secondary/20 relative overflow-hidden">
+            <div className="w-full md:w-1/2 h-52 md:h-full bg-secondary/20 relative overflow-hidden flex-shrink-0">
               <img
                 src={product.image || 'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=800&q=80'}
                 alt={product.name}
@@ -75,7 +74,7 @@ const QuickViewModal = ({ product, onClose }: QuickViewModalProps) => {
             </div>
 
             {/* Content Section */}
-            <div className="w-full md:w-1/2 p-6 md:p-10 flex flex-col">
+            <div className="w-full md:w-1/2 p-5 md:p-10 flex flex-col overflow-y-auto">
               <button
                 onClick={onClose}
                 className="absolute top-4 right-4 p-2 hover:bg-secondary rounded-full transition-colors z-10"
@@ -83,7 +82,7 @@ const QuickViewModal = ({ product, onClose }: QuickViewModalProps) => {
                 <X size={20} className="text-muted-foreground" />
               </button>
 
-              <div className="flex-1 space-y-4">
+              <div className="flex-1 space-y-3 md:space-y-4">
                 <div>
                   <div className="flex items-center gap-2 mb-1.5">
                     <div className="flex text-yellow-400">
@@ -91,27 +90,27 @@ const QuickViewModal = ({ product, onClose }: QuickViewModalProps) => {
                     </div>
                     <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Highly Rated</span>
                   </div>
-                  <h2 className="font-heading text-2xl md:text-3xl font-bold text-foreground leading-tight">{product.name}</h2>
+                  <h2 className="font-heading text-xl md:text-3xl font-bold text-foreground leading-tight">{product.name}</h2>
                   <div className="flex items-center gap-4 mt-2">
-                    <span className="text-2xl font-bold text-primary">₹{product.price.toLocaleString()}</span>
+                    <span className="text-xl md:text-2xl font-bold text-primary">₹{product.price.toLocaleString()}</span>
                   </div>
-                  
-                  {/* Premium Size Badge */}
+
+                  {/* Size */}
                   {product.size && (
-                    <div className="mt-3 flex items-baseline gap-2 text-muted-foreground font-body">
+                    <div className="mt-2 flex items-baseline gap-2 text-muted-foreground font-body">
                       <span className="text-xs font-bold uppercase tracking-wider">Size:</span>
-                      <span className="text-primary font-heading text-xl md:text-2xl font-bold tracking-wide">
+                      <span className="text-primary font-heading text-lg md:text-2xl font-bold tracking-wide">
                         {product.size.replace(/\s*\*\s*/g, ' × ').replace(/\s*[xX]\s*(?=\d)/g, ' × ')}
                       </span>
                     </div>
                   )}
                 </div>
 
-                <div className="space-y-3">
-                  <p className="text-sm text-muted-foreground font-body leading-relaxed">
+                <div className="space-y-2 md:space-y-3">
+                  <p className="text-sm text-muted-foreground font-body leading-relaxed line-clamp-3 md:line-clamp-none">
                     {product.description || `This beautiful ${product.name} is handcrafted with premium materials to preserve your most precious memories. A perfect gift for any special occasion that your loved ones will cherish forever.`}
                   </p>
-                  
+
                   <div className="flex flex-wrap gap-2 pt-1">
                     <div className="flex items-center gap-1.5 px-2.5 py-1 bg-[#E8F5E9] text-[#2E7D32] rounded-full text-[10px] font-bold tracking-wider font-body border border-[#C8E6C9]/40 select-none">
                       <ShieldCheck size={12} className="shrink-0" />
@@ -124,7 +123,7 @@ const QuickViewModal = ({ product, onClose }: QuickViewModalProps) => {
                   </div>
                 </div>
 
-                <div className="pt-4 border-t border-border flex flex-col sm:flex-row gap-2.5">
+                <div className="pt-3 border-t border-border flex flex-row gap-2">
                   <button
                     onClick={() => { addItem(product); onClose(); }}
                     disabled={product.isSoldOut}
@@ -136,7 +135,7 @@ const QuickViewModal = ({ product, onClose }: QuickViewModalProps) => {
                   <button
                     onClick={handleShare}
                     title={copied ? 'Link Copied!' : 'Share this product'}
-                    className={`p-3 border rounded-xl transition-all ${
+                    className={`p-3 border rounded-xl transition-all flex-shrink-0 ${
                       copied
                         ? 'border-green-400 text-green-500 bg-green-50'
                         : 'border-border text-muted-foreground hover:text-primary hover:border-primary'
@@ -146,8 +145,8 @@ const QuickViewModal = ({ product, onClose }: QuickViewModalProps) => {
                   </button>
                 </div>
               </div>
-              
-              <div className="mt-4 pt-3 border-t border-border/40 text-center">
+
+              <div className="mt-3 pt-3 border-t border-border/40 text-center hidden md:block">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">
                   Guaranteed safe checkout with UPI
                 </p>

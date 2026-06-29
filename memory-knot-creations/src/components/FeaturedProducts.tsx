@@ -3,14 +3,6 @@ import { motion } from 'framer-motion';
 import { ShoppingBag, Eye } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
 import { api } from '@/lib/api';
-import productMemoryBox from '@/assets/product-memory-box.jpg';
-import productLoveLetter from '@/assets/product-love-letter.jpg';
-import productPhotoGift from '@/assets/product-photo-gift.jpg';
-import productHamper from '@/assets/product-hamper.jpg';
-import productKeepsake from '@/assets/product-keepsake.jpg';
-import productScrapbook from '@/assets/product-scrapbook.jpg';
-import productStarmap from '@/assets/product-starmap.jpg';
-import gallery2 from '@/assets/gallery-2.jpg';
 import { Skeleton } from '@/components/ui/skeleton';
 import QuickViewModal from './QuickViewModal';
 

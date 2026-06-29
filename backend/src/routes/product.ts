@@ -116,4 +116,21 @@ router.get("/featured", async (req, res) => {
   }
 });
 
+// Get a single product by ID
+router.get("/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const product = await prisma.product.findUnique({
+      where: { id },
+    });
+    if (!product) {
+      return res.status(404).json({ error: "Product not found" });
+    }
+    res.json(product);
+  } catch (error: any) {
+    console.error("Fetch Product Details Error:", error);
+    res.status(500).json({ error: "Failed to fetch product details", details: error.message });
+  }
+});
+
 export default router;

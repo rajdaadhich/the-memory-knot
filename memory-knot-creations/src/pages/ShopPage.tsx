@@ -140,6 +140,7 @@ const ShopPage = () => {
   const { addItem } = useCart();
   const [searchParams, setSearchParams] = useSearchParams();
   const categoryParam = searchParams.get('category');
+  const productIdParam = searchParams.get('productId');
   const isCategorySelected = !!categoryParam && CATEGORY_CARDS.some(c => c.id === categoryParam);
 
   // Products state
@@ -160,7 +161,7 @@ const ShopPage = () => {
   const [selectedGiftFor, setSelectedGiftFor]         = useState('All');
   
   const [showFilters, setShowFilters]           = useState(false);
-  const [minPrice, setMinPrice]                 = useState(199);
+  const [minPrice, setMinPrice]                 = useState(1);
   const [maxPrice, setMaxPrice]                 = useState(1000);
 
   // Temporary drawer states (applied only on "Apply" button click)
@@ -168,7 +169,7 @@ const ShopPage = () => {
   const [tempSubCategory, setTempSubCategory]   = useState('All');
   const [tempOccasion, setTempOccasion]         = useState('All');
   const [tempGiftFor, setTempGiftFor]           = useState('All');
-  const [tempMinPrice, setTempMinPrice]         = useState(199);
+  const [tempMinPrice, setTempMinPrice]         = useState(1);
   const [tempMaxPrice, setTempMaxPrice]         = useState(1000);
 
   // Sync category param with filter state
@@ -188,6 +189,21 @@ const ShopPage = () => {
     setSelectedGiftFor('All');
     setTempGiftFor('All');
   }, [categoryParam]);
+
+  // Auto-open product details if productId parameter is present in the URL
+  useEffect(() => {
+    if (productIdParam) {
+      const loadProductDetails = async () => {
+        try {
+          const product = await api.getProductDetails(productIdParam);
+          setSelectedProduct(product);
+        } catch (err) {
+          console.error("Failed to load auto-open product details:", err);
+        }
+      };
+      loadProductDetails();
+    }
+  }, [productIdParam]);
 
   const handleOpenFilters = () => {
     setTempCategory(selectedCategory);
@@ -314,7 +330,7 @@ const ShopPage = () => {
 
   // Debounced search and filters
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [debouncedMinPrice, setDebouncedMinPrice] = useState(199);
+  const [debouncedMinPrice, setDebouncedMinPrice] = useState(1);
   const [debouncedMaxPrice, setDebouncedMaxPrice] = useState(1000);
 
   useEffect(() => {
@@ -411,8 +427,8 @@ const ShopPage = () => {
     setSelectedGiftFor('All');
     setTempGiftFor('All');
     setSortBy('popular');
-    setMinPrice(199);
-    setTempMinPrice(199);
+    setMinPrice(1);
+    setTempMinPrice(1);
     setMaxPrice(1000);
     setTempMaxPrice(1000);
   };
@@ -439,8 +455,8 @@ const ShopPage = () => {
               </p>
             </div>
 
-            {/* Category Cards Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 lg:gap-8">
+            {/* Category Cards Grid — 2 cols on mobile, up to 4 on desktop */}
+            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 lg:gap-6">
               {CATEGORY_CARDS.map((card, i) => (
                 <motion.div
                   key={card.id}
@@ -448,7 +464,7 @@ const ShopPage = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.06, duration: 0.4 }}
                   onClick={() => setSearchParams({ category: card.id })}
-                  className="group relative h-72 rounded-2xl overflow-hidden shadow-card hover:shadow-elevated transition-all duration-500 cursor-pointer border border-border/40"
+                  className="group relative h-40 sm:h-56 lg:h-72 rounded-2xl overflow-hidden shadow-card hover:shadow-elevated transition-all duration-500 cursor-pointer border border-border/40"
                 >
                   {/* Card Background Image */}
                   <img
@@ -456,24 +472,24 @@ const ShopPage = () => {
                     alt={card.title}
                     className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
                   />
-                  {/* Backdrop Color Gradient Overlay */}
+                  {/* Gradient Overlay */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-transparent opacity-90 group-hover:opacity-95 transition-opacity duration-300" />
                   
-                  {/* Color Pink Tint overlay on hover */}
+                  {/* Pink tint on hover */}
                   <div className="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
 
                   {/* Card content */}
-                  <div className="absolute inset-0 p-6 flex flex-col justify-end text-white z-10">
-                    <span className="text-[9px] uppercase font-bold tracking-widest text-primary mb-1 opacity-90">
+                  <div className="absolute inset-0 p-3 sm:p-6 flex flex-col justify-end text-white z-10">
+                    <span className="text-[8px] sm:text-[9px] uppercase font-bold tracking-widest text-primary mb-0.5 sm:mb-1 opacity-90">
                       Collection
                     </span>
-                    <h2 className="font-heading text-xl md:text-2xl font-bold mb-1.5 group-hover:translate-x-1 transition-transform duration-300">
+                    <h2 className="font-heading text-sm sm:text-xl md:text-2xl font-bold mb-0.5 sm:mb-1.5 group-hover:translate-x-1 transition-transform duration-300 leading-tight">
                       {card.title}
                     </h2>
-                    <p className="text-xs font-body text-white/75 line-clamp-2 mb-4 leading-relaxed group-hover:text-white transition-colors">
+                    <p className="text-[10px] sm:text-xs font-body text-white/75 line-clamp-2 mb-2 sm:mb-4 leading-relaxed group-hover:text-white transition-colors hidden sm:block">
                       {card.description}
                     </p>
-                    <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-primary group-hover:underline">
+                    <div className="flex items-center gap-1 text-[10px] sm:text-xs font-bold uppercase tracking-wider text-primary">
                       Explore
                       <span className="group-hover:translate-x-1 transition-transform duration-300">→</span>
                     </div>
@@ -501,42 +517,34 @@ const ShopPage = () => {
         <Navbar />
 
         <div className="max-w-[1600px] mx-auto px-4 lg:px-8 pt-6 pb-10">
-          {/* Integrated Page Header & Breadcrumb */}
-          <div className="mb-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <p className="text-[10px] text-muted-foreground font-body uppercase tracking-wider mb-0.5">
-                <a href="/" className="hover:text-primary transition-colors">Home</a>
-                {' '}/{' '}
-                <button onClick={() => setSearchParams({})} className="hover:text-primary transition-colors">Shop</button>
-                {' '}/{' '}
-                <span className="text-foreground">{CATEGORY_CARDS.find(c => c.id === selectedCategory)?.title || selectedCategory}</span>
-              </p>
-              <div className="flex items-center gap-3 mt-1.5">
-                <button
-                  onClick={() => setSearchParams({})}
-                  className="px-2.5 py-1 bg-white hover:bg-secondary text-foreground text-xs font-bold rounded-lg border border-border transition-all flex items-center gap-1 hover:text-primary"
-                >
-                  <span>← Collections</span>
-                </button>
-                <h1 className="font-heading text-xl lg:text-2xl font-black text-foreground">
-                  {CATEGORY_CARDS.find(c => c.id === selectedCategory)?.title || selectedCategory}
-                </h1>
-              </div>
-            </div>
+          {/* Compact mobile header */}
+          <div className="mb-4 flex items-center gap-2">
+            <button
+              onClick={() => setSearchParams({})}
+              className="p-2 bg-white hover:bg-secondary text-foreground rounded-lg border border-border transition-all flex items-center gap-1 hover:text-primary flex-shrink-0"
+            >
+              <span className="text-xs font-bold">← Back</span>
+            </button>
+            <h1 className="font-heading text-lg lg:text-2xl font-black text-foreground truncate">
+              {CATEGORY_CARDS.find(c => c.id === selectedCategory)?.title || selectedCategory}
+            </h1>
+            {total > 0 && (
+              <span className="ml-auto text-xs text-muted-foreground font-body flex-shrink-0">{total} items</span>
+            )}
           </div>
 
-          {/* Search + Filter Bar */}
-          <div className="flex flex-col sm:flex-row gap-3 mb-6">
+          {/* Search + Filter Bar — single row on mobile */}
+          <div className="flex gap-2 mb-4">
             {/* Search */}
             <div className="relative flex-1">
-              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <input
                 type="text"
-                placeholder={`Search inside ${selectedCategory.toLowerCase()}...`}
+                placeholder="Search..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 id="shop-search"
-                className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 font-body text-sm"
+                className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 font-body text-sm"
               />
               {searchQuery && (
                 <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
@@ -545,51 +553,44 @@ const ShopPage = () => {
               )}
             </div>
 
-            {/* Sort & Filter Container */}
-            <div className="flex gap-3 w-full sm:w-auto">
-              {/* Sort */}
-              <div className="relative flex-1 sm:flex-none sm:w-auto" ref={sortRef}>
-                <button
-                  onClick={() => setIsSortOpen(!isSortOpen)}
-                  className="w-full sm:w-[180px] flex items-center justify-between pl-4 pr-3 py-2.5 rounded-lg border border-border bg-white hover:border-primary/50 transition-colors font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
-                >
-                  <span className="truncate">{SORT_OPTIONS.find(opt => opt.value === sortBy)?.label || 'Sort By'}</span>
-                  <ChevronDown size={16} className={`text-muted-foreground transition-transform duration-200 flex-shrink-0 ml-2 ${isSortOpen ? 'rotate-180' : ''}`} />
-                </button>
-
-                {/* Dropdown Menu */}
-                {isSortOpen && (
-                  <div className="absolute z-30 top-full mt-2 left-0 w-full bg-white border border-border rounded-xl shadow-elevated overflow-hidden py-1 origin-top animate-in fade-in zoom-in-95 duration-200">
-                    {SORT_OPTIONS.map(opt => (
-                      <button
-                        key={opt.value}
-                        onClick={() => {
-                          setSortBy(opt.value);
-                          setIsSortOpen(false);
-                        }}
-                        className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${
-                          sortBy === opt.value
-                            ? 'bg-primary/5 text-primary font-medium'
-                            : 'text-foreground/80 hover:bg-secondary hover:text-foreground'
-                        }`}
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Filter toggle */}
+            {/* Sort dropdown — icon only on mobile */}
+            <div className="relative flex-shrink-0" ref={sortRef}>
               <button
-                onClick={() => handleOpenFilters()}
-                id="toggle-filters"
-                className="flex-1 sm:flex-none flex justify-center items-center gap-2 px-4 py-2.5 rounded-lg border border-border bg-white font-body text-sm hover:border-primary hover:text-primary transition-colors"
+                onClick={() => setIsSortOpen(!isSortOpen)}
+                className="h-full flex items-center gap-1.5 px-3 py-2.5 rounded-xl border border-border bg-white hover:border-primary/50 transition-colors font-body text-sm text-foreground focus:outline-none"
               >
-                <SlidersHorizontal size={16} />
-                Filters
+                <ChevronDown size={15} className={`text-muted-foreground transition-transform duration-200 ${isSortOpen ? 'rotate-180' : ''}`} />
+                <span className="hidden sm:inline truncate max-w-[120px]">{SORT_OPTIONS.find(opt => opt.value === sortBy)?.label || 'Sort'}</span>
               </button>
+
+              {isSortOpen && (
+                <div className="absolute z-30 top-full mt-2 right-0 w-48 bg-white border border-border rounded-xl shadow-elevated overflow-hidden py-1 origin-top-right animate-in fade-in zoom-in-95 duration-200">
+                  {SORT_OPTIONS.map(opt => (
+                    <button
+                      key={opt.value}
+                      onClick={() => { setSortBy(opt.value); setIsSortOpen(false); }}
+                      className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${
+                        sortBy === opt.value
+                          ? 'bg-primary/5 text-primary font-medium'
+                          : 'text-foreground/80 hover:bg-secondary hover:text-foreground'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
+
+            {/* Filter toggle */}
+            <button
+              onClick={() => handleOpenFilters()}
+              id="toggle-filters"
+              className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2.5 rounded-xl border border-border bg-white font-body text-sm hover:border-primary hover:text-primary transition-colors"
+            >
+              <SlidersHorizontal size={15} />
+              <span className="hidden sm:inline">Filters</span>
+            </button>
           </div>
 
           {/* Products Grid */}
@@ -616,7 +617,7 @@ const ShopPage = () => {
             <>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 lg:gap-4">
                 {products.map((product, i) => (
-                  <motion.div
+                <motion.div
                     key={product.id}
                     initial={{ opacity: 0, y: 16 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -702,7 +703,17 @@ const ShopPage = () => {
         </div>
 
         <Footer />
-        <QuickViewModal product={selectedProduct} onClose={() => setSelectedProduct(null)} />
+        <QuickViewModal 
+          product={selectedProduct} 
+          onClose={() => {
+            setSelectedProduct(null);
+            if (searchParams.has('productId')) {
+              const newParams = new URLSearchParams(searchParams);
+              newParams.delete('productId');
+              setSearchParams(newParams);
+            }
+          }} 
+        />
 
         {/* Filter Drawer */}
         <AnimatePresence>
@@ -838,20 +849,20 @@ const ShopPage = () => {
                         <div
                           className="absolute h-1.5 bg-primary rounded-lg pointer-events-none"
                           style={{
-                            left: `${((tempMinPrice - 199) / (1000 - 199)) * 100}%`,
-                            right: `${100 - ((tempMaxPrice - 199) / (1000 - 199)) * 100}%`
+                            left: `${((tempMinPrice - 1) / (1000 - 1)) * 100}%`,
+                            right: `${100 - ((tempMaxPrice - 1) / (1000 - 1)) * 100}%`
                           }}
                         ></div>
                         <input
                           type="range"
-                          min="199" max="1000" step="10"
+                          min="1" max="1000" step="1"
                           value={tempMinPrice}
                           onChange={(e) => setTempMinPrice(Math.min(Number(e.target.value), tempMaxPrice - 50))}
                           className="absolute w-full h-1.5 appearance-none bg-transparent pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:cursor-pointer z-10"
                         />
                         <input
                           type="range"
-                          min="199" max="1000" step="10"
+                          min="1" max="1000" step="1"
                           value={tempMaxPrice}
                           onChange={(e) => setTempMaxPrice(Math.max(Number(e.target.value), tempMinPrice + 50))}
                           className="absolute w-full h-1.5 appearance-none bg-transparent pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:cursor-pointer z-20"

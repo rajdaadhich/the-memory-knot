@@ -327,6 +327,41 @@ router.patch("/orders/:id", verifyToken, async (req: any, res: any) => {
   }
 });
 
+// Bulk Product Creation (for Excel upload)
+router.post("/products/bulk", verifyToken, async (req: any, res: any) => {
+  try {
+    const { products } = req.body;
+    if (!Array.isArray(products) || products.length === 0) {
+      return res.status(400).json({ error: "Products array is required and cannot be empty" });
+    }
+
+    const validProducts = products.map((p: any) => {
+      if (!p.name || isNaN(parseFloat(p.price))) {
+        throw new Error(`Invalid product entry: name and price are required for "${p.name || 'unknown'}"`);
+      }
+      return {
+        name: String(p.name),
+        price: parseFloat(p.price),
+        description: p.description ? String(p.description) : null,
+        image: p.image ? String(p.image) : null,
+        category: p.category ? String(p.category) : null,
+        subCategory: p.subCategory ? String(p.subCategory) : null,
+        occasion: p.occasion ? String(p.occasion) : null,
+        giftFor: p.giftFor ? String(p.giftFor) : null,
+        size: p.size ? String(p.size) : null,
+        featured: String(p.featured).toLowerCase() === 'true',
+        isSoldOut: String(p.isSoldOut).toLowerCase() === 'true',
+      };
+    });
+
+    const result = await prisma.product.createMany({ data: validProducts });
+    res.status(201).json({ success: true, count: result.count, message: `${result.count} products created successfully` });
+  } catch (error: any) {
+    console.error("Bulk Create Products Error:", error);
+    res.status(500).json({ error: error.message || "Failed to bulk create products" });
+  }
+});
+
 // Product Management
 router.post("/products", verifyToken, async (req: any, res: any) => {
   try {
@@ -392,6 +427,29 @@ router.delete("/products/:id", verifyToken, async (req: any, res: any) => {
       return res.status(404).json({ error: "Product not found" });
     }
     res.status(500).json({ error: "Failed to delete product", details: error.message });
+  }
+});
+
+// Update status of a specific order item (product within an order)
+router.patch("/orders/items/:itemId", verifyToken, async (req: any, res: any) => {
+  try {
+    const { itemId } = req.params;
+    const { status } = req.body; // e.g. "PENDING", "IN_PROGRESS", "COMPLETED"
+
+    if (!status) {
+      return res.status(400).json({ error: "Status is required" });
+    }
+
+    const updatedItem = await prisma.orderItem.update({
+      where: { id: itemId },
+      data: { status },
+      include: { product: true }
+    });
+
+    res.json({ success: true, item: updatedItem });
+  } catch (error: any) {
+    console.error("Update Order Item Status Error:", error);
+    res.status(500).json({ error: "Failed to update item status", details: error.message });
   }
 });
 
